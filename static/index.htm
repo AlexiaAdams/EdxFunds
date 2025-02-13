@@ -239,14 +239,22 @@
 
       // Fixing data types
       edSpend.forEach((d) => {
-        d["ppcs"] = parseInt(d["ppcs"].replace(",", ""));
-        d["pp_rev_total"] = parseInt(d["pp_rev_total"].replace(",", ""));
-        d["pp_rev_fed"] = parseInt(d["pp_rev_fed"].replace(",", ""));
-        d["pp_rev_state"] = parseInt(d["pp_rev_state"].replace(",", ""));
-        d["pp_rev_local"] = parseInt(d["pp_rev_local"].replace(",", ""));
-        d["sat_total"] = Number(d["sat_total"])
-        d["sat_erw"] = Number(d["sat_erw"])
-        d["sat_math"] = Number(d["sat_math"])
+        let strToInt = ["ppcs", "pp_rev_total", "pp_rev_fed",
+          "pp_rev_state", "pp_rev_local"]
+
+        for (let i = 0; i < strToInt.length; i++) {
+          d[strToInt[i]] = parseInt(d[strToInt[i]].replace(",", ""));
+        }
+
+        let numerics = ["sat_total", "sat_erw", "sat_math", "sat_perc",
+          "act_total", "act_math", "act_read", "act_eng", "act_sci", "act_perc",
+          "g8_read", "g8_math", "g4_read", "g4_math"]
+
+        for (let i = 0; i < numerics.length; i++) {
+          d[numerics[i]] = Number(d[numerics[i]])
+        }
+
+        d["act_erw"] = (d["act_eng"] + d["act_read"]) / 2
       })
       console.log(edSpend)
 
@@ -289,6 +297,9 @@
       let blueColors = ["#caf0f8", "#90e0ef", "#00b4d8", "#0077b6", "#023e8a"]
 
       let useColors = greenColors
+
+      let perfVarMath = "sat_math"
+      let perfVarRead = "sat_erw"
 
       function updateMap(spendVar, spendDct) {
         // default => ppcs
@@ -507,6 +518,10 @@
         d3.selectAll("text.remove").remove()
         updateGraph(selectedStates, spendExtent)
 
+        d3.selectAll("g.removePerf").remove()
+        d3.selectAll("text.removePerf").remove()
+        updatePerformance(selectedStates, spendExtent, perfVarMath, perfVarRead)
+
       }
 
       // ------------ All Bar Charts  ------------
@@ -626,18 +641,64 @@
 
         spendChart.raise()
 
-        // -------------- Math Bar Chart ---------------
+      }
 
-        const mathExtent = [200, 800]
+      function updatePerformance(selectedStates, spendExtent, perfVarMath, perfVarRead) {
+
+        let barStates = []
+        barStates.push("US")
+
+        // Change state names to state codes
+        for (let i = 0; i < selectedStates.length; i++) {
+          barStates.push(stateNameCode[selectedStates[i]]);
+        }
+
+        let barIDs = []
+
+        for (let i = 0; i < barStates.length; i++) {
+          barIDs.push(codeToEdID[barStates[i]])
+        }
+
+        let subData = edSpend.filter((d, i) => {
+          return barIDs.includes(i)
+        });
+
+        console.log("HKUGJFHDFGIHLGF")
+        console.log(barStates)
+
+        let xStateScale = d3.scaleBand()
+          .domain(barStates)
+          .range([0, wSpend - marginSpend.left]);
+
+        // default: sat
+        let perfExtent = [200, 800]
+        let yMathLabel = "SAT Math Scores"
+        let yReadLabel = "SAT ERW Scores"
+
+        if (perfVarMath == "act_math") {
+          perfExtent = [1, 36]
+          yMathLabel = "ACT Math Scores"
+          yReadLabel = "ACT Reading + English Scores"
+        }
+        if (perfVarMath == "g4_math") {
+          perfExtent = [0, 500]
+          yMathLabel = "NAEP Grade 4 Math Scores"
+          yReadLabel = "NAEP Grade 4 Reading Scores"
+        }
+        if (perfVarMath == "g8_math") {
+          perfExtent = [0, 500]
+          yMathLabel = "NAEP Grade 8 Math Scores"
+          yReadLabel = "NAEP Grade 8 Reading Scores"
+        }
 
         let yMathScale = d3.scaleLinear()
-          .domain(mathExtent)
+          .domain(perfExtent)
           .range([mathChartH, 0])
 
-        let leftAxisMath = d3.axisLeft(yMathScale);
+        let leftAxisMath = d3.axisLeft(yMathScale)
 
         mathAnno.append("g")
-          .attr("class", "y axis remove")
+          .attr("class", "y axis removePerf")
           .attr("transform",
             `translate(${marginMath.left},${marginMath.top})`
           )
@@ -648,7 +709,7 @@
           .tickFormat("");
 
         mathAnno.append("g")
-          .attr("class", "y gridlines remove")
+          .attr("class", "y gridlines removePerf")
           .attr("transform",
             `translate(${marginMath.left},${marginMath.top})`
           )
@@ -657,14 +718,14 @@
         let bottomAxisMath = d3.axisBottom(xStateScale);
 
         mathAnno.append("g")
-          .attr("class", "x axis remove")
+          .attr("class", "x axis removePerf")
           .attr("transform",
             `translate(${marginMath.left},${mathChartH + marginMath.top})`
           )
           .call(bottomAxisMath);
 
         mathAnno.append("text")
-          .attr("class", "x-label remove")
+          .attr("class", "x-label removePerf")
           .attr("transform", `translate(${mathChartW / 2 + marginMath.left}, ${hMath - marginMath.bottom + 4 * marginMath.top})`)
           .style("text-anchor", "middle")
           .text("States")
@@ -673,14 +734,15 @@
           .style("font-weight", "bold");
 
         mathAnno.append("text")
-          .attr("class", "y-label remove")
+          .attr("class", "y-label removePerf")
           .attr("transform", `translate(${marginMath.right}, ${mathChartH / 2}) rotate(-90)`)
           .style("text-anchor", "middle")
-          .text("SAT Math Scores")
+          .text(yMathLabel)
           .attr("fill", "black")
           .style("font-family", "monospace")
           .style("font-weight", "bold");
 
+        let barW = 20
 
         mathChart.selectAll("rect.pos")
           .data(subData)
@@ -688,24 +750,22 @@
           .attr("class", "pos")
           .attr("fill", d => spendColorScale(d[spendVar]))
           .attr("x", d => xStateScale(d.code) - (barW / 2) + (xStateScale.bandwidth() / 2))
-          .attr("y", d => yMathScale(d["sat_math"]))
-          .attr("height", d => mathChartH - yMathScale(d["sat_math"]))
+          .attr("y", d => yMathScale(d[perfVarMath]))
+          .attr("height", d => mathChartH - yMathScale(d[perfVarMath]))
           .attr("width", d => barW)
 
         mathChart.raise()
 
-        // -------------- Reading Bar Chart ---------------
-
-        const readExtent = [200, 800]
+        // ---- Reading ----
 
         let yReadScale = d3.scaleLinear()
-          .domain(readExtent)
+          .domain(perfExtent)
           .range([readChartH, 0])
 
         let leftAxisRead = d3.axisLeft(yReadScale);
 
         readAnno.append("g")
-          .attr("class", "y axis remove")
+          .attr("class", "y axis removePerf")
           .attr("transform",
             `translate(${marginRead.left},${marginRead.top})`
           )
@@ -716,7 +776,7 @@
           .tickFormat("");
 
         readAnno.append("g")
-          .attr("class", "y gridlines remove")
+          .attr("class", "y gridlines removePerf")
           .attr("transform",
             `translate(${marginRead.left},${marginRead.top})`
           )
@@ -725,14 +785,14 @@
         let bottomAxisRead = d3.axisBottom(xStateScale);
 
         readAnno.append("g")
-          .attr("class", "x axis remove")
+          .attr("class", "x axis removePerf")
           .attr("transform",
             `translate(${marginRead.left},${readChartH + marginRead.top})`
           )
           .call(bottomAxisRead);
 
         readAnno.append("text")
-          .attr("class", "x-label remove")
+          .attr("class", "x-label removePerf")
           .attr("transform", `translate(${readChartW / 2 + marginRead.left}, ${hRead - marginRead.bottom + 4 * marginRead.top})`)
           .style("text-anchor", "middle")
           .text("States")
@@ -740,15 +800,15 @@
           .style("font-family", "monospace")
           .style("font-weight", "bold");
 
+
         readAnno.append("text")
-          .attr("class", "y-label remove")
+          .attr("class", "y-label removePerf")
           .attr("transform", `translate(${marginRead.right}, ${readChartH / 2}) rotate(-90)`)
           .style("text-anchor", "middle")
-          .text("SAT ERW Scores")
+          .text(yReadLabel)
           .attr("fill", "black")
           .style("font-family", "monospace")
           .style("font-weight", "bold");
-
 
         readChart.selectAll("rect.pos")
           .data(subData)
@@ -756,16 +816,15 @@
           .attr("class", "pos")
           .attr("fill", d => spendColorScale(d[spendVar]))
           .attr("x", d => xStateScale(d.code) - (barW / 2) + (xStateScale.bandwidth() / 2))
-          .attr("y", d => yReadScale(d["sat_erw"]))
-          .attr("height", d => readChartH - yReadScale(d["sat_erw"]))
+          .attr("y", d => yReadScale(d[perfVarRead]))
+          .attr("height", d => readChartH - yReadScale(d[perfVarRead]))
           .attr("width", d => barW)
 
         readChart.raise()
-
       }
 
       updateGraph([], spendExtent)
-
+      updatePerformance([], spendExtent, perfVarMath, perfVarRead)
 
       // ----- Button Functionality -----
       let ppcsButton = d3.select("#opPPCS")
@@ -786,6 +845,8 @@
           d3.selectAll("g.remove").remove()
           d3.selectAll("text.remove").remove()
           updateGraph(selectedStates, spendExtent)
+          updatePerformance(selectedStates, spendExtent, perfVarMath, perfVarRead)
+
         }
       })
 
@@ -807,6 +868,8 @@
           d3.selectAll("g.remove").remove()
           d3.selectAll("text.remove").remove()
           updateGraph(selectedStates, spendExtent)
+          updatePerformance(selectedStates, spendExtent, perfVarMath, perfVarRead)
+
         }
       })
 
@@ -828,6 +891,8 @@
           d3.selectAll("g.remove").remove()
           d3.selectAll("text.remove").remove()
           updateGraph(selectedStates, spendExtent)
+          updatePerformance(selectedStates, spendExtent, perfVarMath, perfVarRead)
+
         }
       })
 
@@ -849,12 +914,83 @@
           d3.selectAll("g.remove").remove()
           d3.selectAll("text.remove").remove()
           updateGraph(selectedStates, spendExtent)
+          updatePerformance(selectedStates, spendExtent, perfVarMath, perfVarRead)
+
         }
       })
 
+      // ----- Button Functionality -----
+      let g4Button = d3.select("#opG4")
 
-      // Reset Button
+      g4Button.on("click", function () {
+        if (g4Button.classed("selectedOption", false)) {
+          g4Button.classed("selectedOption", true)
+          g8Button.classed("selectedOption", false)
+          satButton.classed("selectedOption", false)
+          actButton.classed("selectedOption", false)
 
+          perfVarMath = "g4_math"
+          perfVarRead = "g4_read"
+
+          d3.selectAll("g.removePerf").remove()
+          d3.selectAll("text.removePerf").remove()
+          updatePerformance(selectedStates, spendExtent, perfVarMath, perfVarRead)
+        }
+      })
+
+      let g8Button = d3.select("#opG8")
+
+      g8Button.on("click", function () {
+        if (g8Button.classed("selectedOption", false)) {
+          g4Button.classed("selectedOption", false)
+          g8Button.classed("selectedOption", true)
+          satButton.classed("selectedOption", false)
+          actButton.classed("selectedOption", false)
+
+          perfVarMath = "g8_math"
+          perfVarRead = "g8_read"
+
+          d3.selectAll("g.removePerf").remove()
+          d3.selectAll("text.removePerf").remove()
+          updatePerformance(selectedStates, spendExtent, perfVarMath, perfVarRead)
+        }
+      })
+
+      let satButton = d3.select("#opSAT")
+
+      satButton.on("click", function () {
+        if (satButton.classed("selectedOption", false)) {
+          g4Button.classed("selectedOption", false)
+          g8Button.classed("selectedOption", false)
+          satButton.classed("selectedOption", true)
+          actButton.classed("selectedOption", false)
+
+          perfVarMath = "sat_math"
+          perfVarRead = "sat_erw"
+
+          d3.selectAll("g.removePerf").remove()
+          d3.selectAll("text.removePerf").remove()
+          updatePerformance(selectedStates, spendExtent, perfVarMath, perfVarRead)
+        }
+      })
+
+      let actButton = d3.select("#opACT")
+
+      actButton.on("click", function () {
+        if (actButton.classed("selectedOption", false)) {
+          g4Button.classed("selectedOption", false)
+          g8Button.classed("selectedOption", false)
+          satButton.classed("selectedOption", false)
+          actButton.classed("selectedOption", true)
+
+          perfVarMath = "act_math"
+          perfVarRead = "act_erw"
+
+          d3.selectAll("g.removePerf").remove()
+          d3.selectAll("text.removePerf").remove()
+          updatePerformance(selectedStates, spendExtent, perfVarMath, perfVarRead)
+        }
+      })
     }
 
     requestData()
@@ -863,6 +999,9 @@
 
 
 </body>
+
+
+
 
 
 </html>
