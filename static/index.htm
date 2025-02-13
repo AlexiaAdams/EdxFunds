@@ -1,0 +1,868 @@
+<html>
+
+<head>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://d3js.org/topojson.v3.min.js"></script>
+
+
+  <style>
+    .gridlines line {
+      stroke: #bbb;
+    }
+
+    .gridlines .domain {
+      stroke: none;
+    }
+
+    .state {
+      fill: #e3e3e3;
+      cursor: pointer;
+    }
+
+    .outline {
+      stroke: black;
+      stroke-width: 1px;
+      fill: none;
+    }
+
+    .graticule {
+      fill: none;
+      stroke: #777;
+    }
+
+    #stickyHead {
+      background-color: #ff9971;
+      border: 2px solid black;
+      padding: 1%;
+      position: sticky;
+      position: -webkit-sticky;
+      top: 0;
+    }
+
+    h1 {
+      text-align: center;
+      background-color: #ffb79b;
+      border: 2px solid black;
+      padding: 1%;
+    }
+
+    .textBlurb {
+      background-color: #fca785;
+      border: 2px solid black;
+      padding: 1%;
+      font-size: larger;
+    }
+
+    .row {
+      display: flex;
+      flex-direction: row;
+    }
+
+    .row div {
+      width: 50%;
+    }
+
+    .row div h3 {
+      text-align: center;
+    }
+
+    #stateSelect {
+      text-align: center;
+      margin: 0;
+    }
+
+    ul {
+      list-style-type: none;
+    }
+
+    .options {
+      display: flex;
+      flex-direction: row;
+    }
+
+    .options li {
+      width: 25%;
+      text-align: center;
+      cursor: pointer;
+    }
+
+    .selectedOption {
+      border: 2px solid black;
+      background-color: white;
+    }
+
+    .graph-row svg {
+      display: block;
+      margin: auto;
+    }
+  </style>
+
+</head>
+
+<body>
+
+  <h1>Does High Academic Performance Rely on High Spending?</h1>
+
+  <p class="textBlurb">
+    <strong>Education is the foundation for societal growth and innovation.</strong> Since each state governs how funds
+    for education are spent, we want to see if more funding results in higher test scores throughout elementary and
+    secondary programs.
+
+    <br>
+    <br>
+
+    <em>Select up to 5 states from the map.</em>
+  </p>
+
+  <div id="stickyHead">
+
+    <div class="row">
+      <div>
+        <h3>Spending</h3>
+
+        <ul class="options">
+          <li id="opPPCS" class="selectedOption">PPCS</li>
+          <li id="opFed">Federal</li>
+          <li id="opState">State</li>
+          <li id="opLocal">Local</li>
+        </ul>
+
+      </div>
+
+      <div>
+        <h3>Performance</h3>
+
+        <ul class="options">
+          <li id="opG4">NAEP Grade 4</li>
+          <li id="opG8">NAEP Grade 8</li>
+          <li id="opSAT" class="selectedOption">SAT</li>
+          <li id="opACT">ACT</li>
+        </ul>
+
+      </div>
+    </div>
+
+    <h4 id="stateSelect">States Selected: None</h4>
+
+  </div>
+
+  <h2 id="mapHeader">Per Pupil Current Spending for Elementary-Secondary (2022)</h2>
+  <div class="row graph-row">
+    <svg id="map1" width="750" height="750"></svg>
+    <svg id="spending" height="600" width="600"></svg>
+  </div>
+  <div class="row graph-row">
+    <svg id="math" width="600" height="600"></svg>
+    <svg id="read" width="600" height="600"></svg>
+  </div>
+
+  <p>
+    Something important to note is that not everyone takes the SAT and not everyone takes the ACT. Some states have low
+    percentages of seniors taking the SAT, but the scores are higher than other states. The same goes for the ACT.
+  </p>
+
+  <script>
+    // Map of spending
+    const svg = d3.select("#map1");
+    const width = svg.attr("width");
+    const height = svg.attr("height");
+    const margin = { top: 10, right: 10, bottom: 10, left: 10 };
+    const chartWidth = width - margin.left - margin.right;
+    const chartHeight = height - margin.top - margin.bottom;
+    const mapChart = svg.append("g")
+      .attr("id", "mapChart")
+      .attr("transform", `translate(${margin.left},${margin.top})`);
+
+    // Bar chart of spending
+    const svgSpend = d3.select("#spending");
+    const wSpend = svgSpend.attr("width");
+    const hSpend = svgSpend.attr("height");
+    const marginSpend = { top: 10, right: 10, bottom: 50, left: 50 };
+    const spendChartW = wSpend - marginSpend.left - marginSpend.right;
+    const spendChartH = hSpend - marginSpend.bottom - marginSpend.top;
+    const spendChart = svgSpend.append("g")
+      .attr("id", "spendChart")
+      .attr("transform", `translate(${marginSpend.left},${marginSpend.top})`);
+
+    // Bar chart of math performance
+    const svgMath = d3.select("#math");
+    const wMath = svgMath.attr("width");
+    const hMath = svgMath.attr("height");
+    const marginMath = { top: 10, right: 10, bottom: 50, left: 50 };
+    const mathChartW = wMath - marginMath.left - marginMath.right;
+    const mathChartH = hMath - marginMath.bottom - marginMath.top;
+    const mathChart = svgMath.append("g")
+      .attr("id", "mathChart")
+      .attr("transform", `translate(${marginMath.left},${marginMath.top})`);
+
+    // Bar chart of english/reading performance
+    const svgRead = d3.select("#read");
+    const wRead = svgRead.attr("width");
+    const hRead = svgRead.attr("height");
+    const marginRead = { top: 10, right: 10, bottom: 50, left: 50 };
+    const readChartW = wRead - marginRead.left - marginRead.right;
+    const readChartH = hRead - marginRead.bottom - marginRead.top;
+    const readChart = svgRead.append("g")
+      .attr("id", "mathChart")
+      .attr("transform", `translate(${marginRead.left},${marginRead.top})`);
+
+    const requestData = async function () {
+
+      // ------------ Setting up US Map ------------
+      const us = await d3.json("us-smaller.json");
+      console.log(us);
+
+      var states = topojson.feature(us, us.objects.states);
+      var statesMesh = topojson.mesh(us, us.objects.states);
+      var projection = d3.geoAlbersUsa().fitSize([chartWidth, chartHeight], states);
+      var path = d3.geoPath().projection(projection);
+
+      var graticule = d3.geoGraticule10();
+      mapChart.append("path").attr("class", "graticule").attr("d", path(graticule))
+
+      mapChart.selectAll("path.state").data(states.features)
+        .join("path")
+        .attr("class", "state")
+        .attr("note", d => d.id)
+        .attr("d", path)
+        .on('mouseover', mouseEntersState)
+        .on('mouseout', mouseLeavesState)
+        .on("click", mouseChangeState)
+
+      mapChart.append("path").datum(statesMesh)
+        .attr("class", "outline")
+        .attr("d", path);
+
+      // ------------ Per Pupil Spending by State ------------
+      // Can't use d3.autotype because it causes errors with the rev vars
+      const edSpend = await d3.csv("es_spend_2022.csv");
+
+      // Fixing data types
+      edSpend.forEach((d) => {
+        d["ppcs"] = parseInt(d["ppcs"].replace(",", ""));
+        d["pp_rev_total"] = parseInt(d["pp_rev_total"].replace(",", ""));
+        d["pp_rev_fed"] = parseInt(d["pp_rev_fed"].replace(",", ""));
+        d["pp_rev_state"] = parseInt(d["pp_rev_state"].replace(",", ""));
+        d["pp_rev_local"] = parseInt(d["pp_rev_local"].replace(",", ""));
+        d["sat_total"] = Number(d["sat_total"])
+        d["sat_erw"] = Number(d["sat_erw"])
+        d["sat_math"] = Number(d["sat_math"])
+      })
+      console.log(edSpend)
+
+      // Maps state ID (from map) to the state code
+      let stateIDcode = {}
+
+      // Maps state name to state code (used for bar graph)
+      let stateNameCode = {}
+
+      // Maps state code to index in edSpend (used for bar graph)
+      let codeToEdID = {}
+
+      for (let i = 0; i <= 51; i++) {
+        // Alphabetically ordered
+        stateIDcode[us.objects.states.geometries[i].id] = edSpend[i].code
+        us.objects.states.geometries[i].properties = edSpend[i]
+
+        stateNameCode[edSpend[i].state] = edSpend[i].code
+        codeToEdID[edSpend[i].code] = i
+      }
+
+      let ppcs = {}
+      let fedRev = {}
+      let stateRev = {}
+      let localRev = {}
+      let stateNames = {}
+
+      edSpend.forEach(d => {
+        ppcs[d.code] = d.ppcs;
+        fedRev[d.code] = d["pp_rev_fed"]
+        stateRev[d.code] = d["pp_rev_state"]
+        localRev[d.code] = d["pp_rev_local"]
+        stateNames[d.code] = d.state;
+      });
+
+      // color options
+      let greenColors = ["#cce7c9", "#8bca84", "#5bb450", "#46923c", "#276221"]
+      let purpleColors = ["#bca0dc", "#b491c8", "#7c5295", "#663a82", "#52307c"]
+      let cyanColors = ["#40e0d0", "#3acabb", "#33b3a6", "#2d9d92", "#26867d"]
+      let blueColors = ["#caf0f8", "#90e0ef", "#00b4d8", "#0077b6", "#023e8a"]
+
+      let useColors = greenColors
+
+      function updateMap(spendVar, spendDct) {
+        // default => ppcs
+        let useColors = greenColors
+
+        if (spendVar == "pp_rev_fed") {
+          useColors = purpleColors
+        }
+        if (spendVar == "pp_rev_state") {
+          useColors = cyanColors
+        }
+        if (spendVar == "pp_rev_local") {
+          useColors = blueColors
+        }
+
+        const spendExtent = d3.extent(Object.values(spendDct));
+        console.log(spendExtent)
+
+        const spendColorScale = d3.scaleQuantile()
+          .domain(Object.values(spendDct))
+          .range(useColors);
+
+        mapChart.selectAll(".state")
+          .data(edSpend)
+          .style("fill", d => spendColorScale(spendDct[d.code]))
+
+        // Create color scale legend
+        let legendQuantile = mapChart.append("g")
+          .attr("class", "legend")
+
+        let scaleW = 50
+
+        for (let i = 0; i < useColors.length; i++) {
+          legendQuantile.append("rect")
+            .attr("fill", useColors[i])
+            .attr("stroke", "black")
+            .attr("stroke-width", 2)
+            .attr("x", chartWidth / 4 + (i * scaleW))
+            .attr("y", chartHeight - 100)
+            .attr("width", scaleW)
+            .attr("height", 25)
+        }
+
+        const colorLegendScale = d3.scaleQuantile()
+          .domain(spendExtent)
+          .range([0, scaleW * 5])
+
+        let bottomAxisColor = d3.axisBottom(colorLegendScale)
+
+        // need to fix code to remove
+        legendQuantile.append("g")
+          .attr("class", "x axis legRemove")
+          .attr("transform",
+            `translate(${chartWidth / 4},${chartHeight - 75})`
+          )
+          .call(bottomAxisColor);
+
+        return [spendExtent, spendColorScale, spendVar]
+      }
+
+      let spendValues = updateMap("ppcs", ppcs)
+      let spendExtent = spendValues[0]
+      let spendColorScale = spendValues[1]
+      let spendVar = spendValues[2]
+
+      // Tool Tip
+      let toolTipWidth = 150
+      let toolTipHeight = 100
+
+      let mouseMesh = mapChart.append("path")
+        .attr("class", "mouseover outline")
+        .style("stroke", "orange")
+        .style("stroke-width", 1)
+        .attr("d", "")
+
+      let clickMesh = mapChart.append("path")
+        .attr("class", "click outline")
+        .style("stroke", "yellow")
+        .style("stroke-width", 3)
+        .attr("d", "")
+
+      let toolTip = mapChart.append("g")
+        .attr("class", "tooltip")
+        .attr("visibility", "hidden");
+
+      let xPos = width - (toolTipWidth * 1.5) - margin.left - margin.right
+      let yPos = toolTipHeight + margin.top
+
+      toolTip.append("rect")
+        .attr("fill", "black")
+        .attr("opacity", .8)
+        .attr("rx", 6)
+        .attr("ry", 6)
+        .attr("x", xPos)
+        .attr("y", yPos)
+        .attr("width", toolTipWidth)
+        .attr("height", toolTipHeight);
+
+      let stateText = toolTip.append("text")
+        .attr("fill", "white")
+        .attr("text-anchor", "middle")
+        .attr("alignment-baseline", "hanging")
+        .attr("x", xPos + (toolTipWidth / 2))
+        .attr("y", yPos + 5);
+
+      let ppcsText = toolTip.append("text")
+        .attr("fill", "white")
+        .attr("text-anchor", "middle")
+        .attr("alignment-baseline", "hanging")
+        .attr("x", xPos + (toolTipWidth / 2))
+        .attr("y", yPos + 25);
+
+      // Mouse In
+      function mouseEntersState() {
+        toolTip.style("visibility", "visible");
+
+        let st = d3.select(this);
+
+        var format = d3.format("$,")
+
+        stateText.text(st.datum().state + " (" + st.datum().code + ")")
+        ppcsText.text(format(st.datum()[spendVar]))
+
+        var mou = topojson.mesh(us, us.objects.states, function (a, b) {
+          return a.id < 72 && a.properties.state === st.datum().state || b.id < 72 && b.properties.state === st.datum().state
+        });
+
+        mouseMesh.datum(mou).attr("d", path)
+      }
+
+      // Mouse Out
+      function mouseLeavesState() {
+        toolTip.style("visibility", "hidden");
+
+        let st = d3.select(this)
+
+        mouseMesh.attr("d", "")
+      }
+
+      // Highlighting states on click
+      let selectedStates = []
+
+      function highlightState(selectedStates) {
+        let len = selectedStates.length
+
+        if (len === 1) {
+          var mou = topojson.mesh(us, us.objects.states, function (a, b) {
+            return a.id < 72 && a.properties.state === selectedStates[0] || b.id < 72 && b.properties.state === selectedStates[0]
+          });
+        }
+        if (len === 2) {
+          var mou = topojson.mesh(us, us.objects.states, function (a, b) {
+            return a.id < 72 && a.properties.state === selectedStates[0] || b.id < 72 && b.properties.state === selectedStates[0]
+              || a.id < 72 && a.properties.state === selectedStates[1] || b.id < 72 && b.properties.state === selectedStates[1]
+          });
+        }
+        if (len === 3) {
+          var mou = topojson.mesh(us, us.objects.states, function (a, b) {
+            return a.id < 72 && a.properties.state === selectedStates[0] || b.id < 72 && b.properties.state === selectedStates[0]
+              || a.id < 72 && a.properties.state === selectedStates[1] || b.id < 72 && b.properties.state === selectedStates[1]
+              || a.id < 72 && a.properties.state === selectedStates[2] || b.id < 72 && b.properties.state === selectedStates[2]
+
+          });
+        }
+        if (len === 4) {
+          var mou = topojson.mesh(us, us.objects.states, function (a, b) {
+            return a.id < 72 && a.properties.state === selectedStates[0] || b.id < 72 && b.properties.state === selectedStates[0]
+              || a.id < 72 && a.properties.state === selectedStates[1] || b.id < 72 && b.properties.state === selectedStates[1]
+              || a.id < 72 && a.properties.state === selectedStates[2] || b.id < 72 && b.properties.state === selectedStates[2]
+              || a.id < 72 && a.properties.state === selectedStates[3] || b.id < 72 && b.properties.state === selectedStates[3]
+
+          });
+        }
+        if (len === 5) {
+          var mou = topojson.mesh(us, us.objects.states, function (a, b) {
+            return a.id < 72 && a.properties.state === selectedStates[0] || b.id < 72 && b.properties.state === selectedStates[0]
+              || a.id < 72 && a.properties.state === selectedStates[1] || b.id < 72 && b.properties.state === selectedStates[1]
+              || a.id < 72 && a.properties.state === selectedStates[2] || b.id < 72 && b.properties.state === selectedStates[2]
+              || a.id < 72 && a.properties.state === selectedStates[3] || b.id < 72 && b.properties.state === selectedStates[3]
+              || a.id < 72 && a.properties.state === selectedStates[4] || b.id < 72 && b.properties.state === selectedStates[4]
+          });
+        }
+
+        clickMesh.datum(mou).attr("d", path)
+      }
+
+      // Mouse Change
+      function mouseChangeState() {
+        let st = d3.select(this);
+
+        if (selectedStates.length < 5 && selectedStates.indexOf(st.datum().state) === -1) {
+          selectedStates.push(st.datum().state);
+          highlightState(selectedStates);
+        } else {
+          if (selectedStates.length == 5 && selectedStates.indexOf(st.datum().state) === -1) {
+            console.log("Too many states selected. Click a selected state to remove.")
+          } else {
+            selectedStates.splice(selectedStates.indexOf(st.datum().state), 1)
+            highlightState(selectedStates);
+          }
+        }
+
+        const ssHeader = d3.select("#stateSelect");
+        if (selectedStates.length == 0) {
+          ssHeader.text("States Selected: None")
+        } else {
+          let acc_str = "States Selected: "
+          for (let i = 0; i < selectedStates.length; i++) [
+            acc_str = acc_str + selectedStates[i] + ", "
+          ]
+          acc_str = acc_str.substring(0, acc_str.length - 2)
+          ssHeader.text(acc_str)
+        }
+
+        d3.selectAll("g.remove").remove()
+        d3.selectAll("text.remove").remove()
+        updateGraph(selectedStates, spendExtent)
+
+      }
+
+      // ------------ All Bar Charts  ------------
+
+      // ------------ Spending Bar Chart ------------
+
+      let spendAnno = svgSpend.append("g").attr("id", "spendAnno");
+      let mathAnno = svgMath.append("g").attr("id", "mathAnno");
+      let readAnno = svgRead.append("g").attr("id", "readAnno");
+
+      // update spending bar graph depended on states selected
+      function updateGraph(selectedStates, spendExtent) {
+        // x axis = selected states + us
+        let barStates = []
+        barStates.push("US")
+
+        // Change state names to state codes
+        for (let i = 0; i < selectedStates.length; i++) {
+          barStates.push(stateNameCode[selectedStates[i]]);
+        }
+
+        let barIDs = []
+
+        for (let i = 0; i < barStates.length; i++) {
+          barIDs.push(codeToEdID[barStates[i]])
+        }
+
+        let subData = edSpend.filter((d, i) => {
+          return barIDs.includes(i)
+        });
+
+        console.log(subData)
+
+        let xStateScale = d3.scaleBand()
+          .domain(barStates)
+          .range([0, wSpend - marginSpend.left]);
+
+        let bottomAxisSpend = d3.axisBottom(xStateScale);
+
+        // undefined
+        console.log(spendExtent[1])
+
+        let ySpendScale = d3.scaleLinear()
+          .domain([0, spendExtent[1]])
+          .range([spendChartH, 0])
+
+        let leftAxisSpend = d3.axisLeft(ySpendScale).tickFormat(d3.format("$.2s"));
+
+        spendAnno.append("g")
+          .attr("class", "y axis remove")
+          .attr("transform",
+            `translate(${marginSpend.left},${marginSpend.top})`
+          )
+          .call(leftAxisSpend);
+
+        let leftGridlinesSpend = d3.axisLeft(ySpendScale)
+          .tickSize(-wSpend - marginSpend.right)
+          .tickFormat("");
+
+        spendAnno.append("g")
+          .attr("class", "y gridlines remove")
+          .attr("transform",
+            `translate(${marginSpend.left},${marginSpend.top})`
+          )
+          .call(leftGridlinesSpend);
+
+        spendAnno.append("g")
+          .attr("class", "x axis remove")
+          .attr("transform",
+            `translate(${marginSpend.left},${hSpend - marginSpend.bottom})`
+          )
+          .call(bottomAxisSpend);
+
+        spendAnno.append("text")
+          .attr("class", "x-label remove")
+          .attr("transform", `translate(${spendChartW / 2 + marginSpend.left}, ${hSpend - marginSpend.bottom + 4 * marginSpend.top})`)
+          .style("text-anchor", "middle")
+          .text("States")
+          .attr("fill", "black")
+          .style("font-family", "monospace")
+          .style("font-weight", "bold");
+
+        let spendYLabel = "Current Spending Per Pupil"
+
+        if (spendVar == "pp_rev_fed") {
+          spendYLabel = "Federal Revenue Per Pupil"
+        }
+        if (spendVar == "pp_rev_state") {
+          spendYLabel = "State Revenue Per Pupil"
+        }
+        if (spendVar == "pp_rev_local") {
+          spendYLabel = "Local Revenue Per Pupil"
+        }
+
+        spendAnno.append("text")
+          .attr("class", "y-label remove")
+          .attr("transform", `translate(${marginSpend.right}, ${spendChartH / 2}) rotate(-90)`)
+          .style("text-anchor", "middle")
+          .text(spendYLabel)
+          .attr("fill", "black")
+          .style("font-family", "monospace")
+          .style("font-weight", "bold");
+
+        console.log("Bar Debugging")
+
+        let barW = 20
+
+        spendChart.selectAll("rect.pos")
+          .data(subData)
+          .join("rect")
+          .attr("class", "pos")
+          .attr("fill", d => spendColorScale(d[spendVar]))
+          .attr("x", d => xStateScale(d.code) - (barW / 2) + (xStateScale.bandwidth() / 2))
+          .attr("y", d => ySpendScale(d[spendVar]))
+          .attr("height", d => spendChartH - ySpendScale(d[spendVar]))
+          .attr("width", d => barW)
+
+        spendChart.raise()
+
+        // -------------- Math Bar Chart ---------------
+
+        const mathExtent = [200, 800]
+
+        let yMathScale = d3.scaleLinear()
+          .domain(mathExtent)
+          .range([mathChartH, 0])
+
+        let leftAxisMath = d3.axisLeft(yMathScale);
+
+        mathAnno.append("g")
+          .attr("class", "y axis remove")
+          .attr("transform",
+            `translate(${marginMath.left},${marginMath.top})`
+          )
+          .call(leftAxisMath);
+
+        let leftGridlinesMath = d3.axisLeft(yMathScale)
+          .tickSize(-mathChartW - marginMath.right)
+          .tickFormat("");
+
+        mathAnno.append("g")
+          .attr("class", "y gridlines remove")
+          .attr("transform",
+            `translate(${marginMath.left},${marginMath.top})`
+          )
+          .call(leftGridlinesMath);
+
+        let bottomAxisMath = d3.axisBottom(xStateScale);
+
+        mathAnno.append("g")
+          .attr("class", "x axis remove")
+          .attr("transform",
+            `translate(${marginMath.left},${mathChartH + marginMath.top})`
+          )
+          .call(bottomAxisMath);
+
+        mathAnno.append("text")
+          .attr("class", "x-label remove")
+          .attr("transform", `translate(${mathChartW / 2 + marginMath.left}, ${hMath - marginMath.bottom + 4 * marginMath.top})`)
+          .style("text-anchor", "middle")
+          .text("States")
+          .attr("fill", "black")
+          .style("font-family", "monospace")
+          .style("font-weight", "bold");
+
+        mathAnno.append("text")
+          .attr("class", "y-label remove")
+          .attr("transform", `translate(${marginMath.right}, ${mathChartH / 2}) rotate(-90)`)
+          .style("text-anchor", "middle")
+          .text("SAT Math Scores")
+          .attr("fill", "black")
+          .style("font-family", "monospace")
+          .style("font-weight", "bold");
+
+
+        mathChart.selectAll("rect.pos")
+          .data(subData)
+          .join("rect")
+          .attr("class", "pos")
+          .attr("fill", d => spendColorScale(d[spendVar]))
+          .attr("x", d => xStateScale(d.code) - (barW / 2) + (xStateScale.bandwidth() / 2))
+          .attr("y", d => yMathScale(d["sat_math"]))
+          .attr("height", d => mathChartH - yMathScale(d["sat_math"]))
+          .attr("width", d => barW)
+
+        mathChart.raise()
+
+        // -------------- Reading Bar Chart ---------------
+
+        const readExtent = [200, 800]
+
+        let yReadScale = d3.scaleLinear()
+          .domain(readExtent)
+          .range([readChartH, 0])
+
+        let leftAxisRead = d3.axisLeft(yReadScale);
+
+        readAnno.append("g")
+          .attr("class", "y axis remove")
+          .attr("transform",
+            `translate(${marginRead.left},${marginRead.top})`
+          )
+          .call(leftAxisRead);
+
+        let leftGridlinesRead = d3.axisLeft(yReadScale)
+          .tickSize(-readChartW - marginRead.right)
+          .tickFormat("");
+
+        readAnno.append("g")
+          .attr("class", "y gridlines remove")
+          .attr("transform",
+            `translate(${marginRead.left},${marginRead.top})`
+          )
+          .call(leftGridlinesRead);
+
+        let bottomAxisRead = d3.axisBottom(xStateScale);
+
+        readAnno.append("g")
+          .attr("class", "x axis remove")
+          .attr("transform",
+            `translate(${marginRead.left},${readChartH + marginRead.top})`
+          )
+          .call(bottomAxisRead);
+
+        readAnno.append("text")
+          .attr("class", "x-label remove")
+          .attr("transform", `translate(${readChartW / 2 + marginRead.left}, ${hRead - marginRead.bottom + 4 * marginRead.top})`)
+          .style("text-anchor", "middle")
+          .text("States")
+          .attr("fill", "black")
+          .style("font-family", "monospace")
+          .style("font-weight", "bold");
+
+        readAnno.append("text")
+          .attr("class", "y-label remove")
+          .attr("transform", `translate(${marginRead.right}, ${readChartH / 2}) rotate(-90)`)
+          .style("text-anchor", "middle")
+          .text("SAT ERW Scores")
+          .attr("fill", "black")
+          .style("font-family", "monospace")
+          .style("font-weight", "bold");
+
+
+        readChart.selectAll("rect.pos")
+          .data(subData)
+          .join("rect")
+          .attr("class", "pos")
+          .attr("fill", d => spendColorScale(d[spendVar]))
+          .attr("x", d => xStateScale(d.code) - (barW / 2) + (xStateScale.bandwidth() / 2))
+          .attr("y", d => yReadScale(d["sat_erw"]))
+          .attr("height", d => readChartH - yReadScale(d["sat_erw"]))
+          .attr("width", d => barW)
+
+        readChart.raise()
+
+      }
+
+      updateGraph([], spendExtent)
+
+
+      // ----- Button Functionality -----
+      let ppcsButton = d3.select("#opPPCS")
+
+      ppcsButton.on("click", function () {
+        if (ppcsButton.classed("selectedOption", false)) {
+          ppcsButton.classed("selectedOption", true)
+          fedButton.classed("selectedOption", false)
+          stateButton.classed("selectedOption", false)
+          localButton.classed("selectedOption", false)
+          d3.selectAll("g.legRemove").remove()
+          d3.selectAll("text.legRemove").remove()
+
+          spendValues = updateMap("ppcs", ppcs)
+          spendExtent = spendValues[0]
+          spendColorScale = spendValues[1]
+          spendVar = spendValues[2]
+          d3.selectAll("g.remove").remove()
+          d3.selectAll("text.remove").remove()
+          updateGraph(selectedStates, spendExtent)
+        }
+      })
+
+      let fedButton = d3.select("#opFed")
+
+      fedButton.on("click", function () {
+        if (fedButton.classed("selectedOption", false)) {
+          fedButton.classed("selectedOption", true)
+          ppcsButton.classed("selectedOption", false)
+          stateButton.classed("selectedOption", false)
+          localButton.classed("selectedOption", false)
+          d3.selectAll("g.legRemove").remove()
+          d3.selectAll("text.legRemove").remove()
+
+          spendValues = updateMap("pp_rev_fed", fedRev)
+          spendExtent = spendValues[0]
+          spendColorScale = spendValues[1]
+          spendVar = spendValues[2]
+          d3.selectAll("g.remove").remove()
+          d3.selectAll("text.remove").remove()
+          updateGraph(selectedStates, spendExtent)
+        }
+      })
+
+      let stateButton = d3.select("#opState")
+
+      stateButton.on("click", function () {
+        if (stateButton.classed("selectedOption", false)) {
+          stateButton.classed("selectedOption", true)
+          ppcsButton.classed("selectedOption", false)
+          fedButton.classed("selectedOption", false)
+          localButton.classed("selectedOption", false)
+          d3.selectAll("g.legRemove").remove()
+          d3.selectAll("text.legRemove").remove()
+
+          spendValues = updateMap("pp_rev_state", stateRev)
+          spendExtent = spendValues[0]
+          spendColorScale = spendValues[1]
+          spendVar = spendValues[2]
+          d3.selectAll("g.remove").remove()
+          d3.selectAll("text.remove").remove()
+          updateGraph(selectedStates, spendExtent)
+        }
+      })
+
+      let localButton = d3.select("#opLocal")
+
+      localButton.on("click", function () {
+        if (localButton.classed("selectedOption", false)) {
+          localButton.classed("selectedOption", true)
+          ppcsButton.classed("selectedOption", false)
+          fedButton.classed("selectedOption", false)
+          stateButton.classed("selectedOption", false)
+          d3.selectAll("g.legRemove").remove()
+          d3.selectAll("text.legRemove").remove()
+
+          spendValues = updateMap("pp_rev_local", localRev)
+          spendExtent = spendValues[0]
+          spendColorScale = spendValues[1]
+          spendVar = spendValues[2]
+          d3.selectAll("g.remove").remove()
+          d3.selectAll("text.remove").remove()
+          updateGraph(selectedStates, spendExtent)
+        }
+      })
+
+
+      // Reset Button
+
+    }
+
+    requestData()
+
+  </script>
+
+
+</body>
+
+
+</html>
