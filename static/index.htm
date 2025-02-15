@@ -146,20 +146,22 @@
 
   </div>
 
-  <h2 id="mapHeader">Per Pupil Current Spending for Elementary-Secondary (2022)</h2>
+  <!-- <h2 id="mapHeader">Per Pupil Current Spending for Elementary-Secondary (2022)</h2> -->
   <div class="row graph-row">
     <svg id="map1" width="750" height="750"></svg>
     <svg id="spending" height="600" width="600"></svg>
   </div>
   <div class="row graph-row">
-    <svg id="math" width="600" height="600"></svg>
-    <svg id="read" width="600" height="600"></svg>
+    <svg id="math" width="500" height="500"></svg>
+    <svg id="read" width="500" height="500"></svg>
   </div>
 
   <p>
     Something important to note is that not everyone takes the SAT and not everyone takes the ACT. Some states have low
     percentages of seniors taking the SAT, but the scores are higher than other states. The same goes for the ACT.
   </p>
+
+  <svg id="scatter" width="500" height="500"></svg>
 
   <script>
     // Map of spending
@@ -205,6 +207,17 @@
     const readChart = svgRead.append("g")
       .attr("id", "mathChart")
       .attr("transform", `translate(${marginRead.left},${marginRead.top})`);
+
+    const svgScatter = d3.select("#scatter")
+    const wScatter = svgScatter.attr("width")
+    const hScatter = svgScatter.attr("height")
+    const marginScatter = { top: 10, right: 10, bottom: 50, left: 50 }
+    const scatterChartW = wScatter - marginScatter.left - marginScatter.right
+    const scatterChartH = hScatter - marginScatter.top - marginScatter.bottom
+    const scatterChart = svgScatter.append("g")
+      .attr("id", "scatterChart")
+      .attr("transform", `translate(${marginScatter.left},${marginScatter.top})`);
+
 
     const requestData = async function () {
 
@@ -281,19 +294,24 @@
       let stateRev = {}
       let localRev = {}
       let stateNames = {}
+      let satPercs = {}
+      let actPercs = {}
 
       edSpend.forEach(d => {
         ppcs[d.code] = d.ppcs;
-        fedRev[d.code] = d["pp_rev_fed"]
-        stateRev[d.code] = d["pp_rev_state"]
-        localRev[d.code] = d["pp_rev_local"]
+        fedRev[d.code] = d["pp_rev_fed"];
+        stateRev[d.code] = d["pp_rev_state"];
+        localRev[d.code] = d["pp_rev_local"];
         stateNames[d.code] = d.state;
+
+        satPercs[d.code] = d["sat_perc"]
+        actPercs[d.code] = d["act_perc"]
       });
 
       // color options
       let greenColors = ["#cce7c9", "#8bca84", "#5bb450", "#46923c", "#276221"]
       let purpleColors = ["#bca0dc", "#b491c8", "#7c5295", "#663a82", "#52307c"]
-      let cyanColors = ["#40e0d0", "#3acabb", "#33b3a6", "#2d9d92", "#26867d"]
+      let cyanColors = ["#45f7e5", "#3bd1c2", "#33b3a6", "#289086", "#207169"]
       let blueColors = ["#caf0f8", "#90e0ef", "#00b4d8", "#0077b6", "#023e8a"]
 
       let useColors = greenColors
@@ -316,7 +334,6 @@
         }
 
         const spendExtent = d3.extent(Object.values(spendDct));
-        console.log(spendExtent)
 
         const spendColorScale = d3.scaleQuantile()
           .domain(Object.values(spendDct))
@@ -343,13 +360,19 @@
             .attr("height", 25)
         }
 
-        const colorLegendScale = d3.scaleQuantile()
-          .domain(spendExtent)
-          .range([0, scaleW * 5])
+        let testExt = [spendExtent[0], spendColorScale.quantiles()[0],
+        spendColorScale.quantiles()[1], spendColorScale.quantiles()[2],
+        spendColorScale.quantiles()[3], spendExtent[1]]
+
+        const colorLegendScale = d3.scaleOrdinal()
+          .domain(testExt)
+          .range([0, scaleW, scaleW * 2, scaleW * 3, scaleW * 4, scaleW * 5])
 
         let bottomAxisColor = d3.axisBottom(colorLegendScale)
+          .ticks(4)
+          .tickValues(testExt)
+          .tickFormat(d3.format("$.2s"))
 
-        // need to fix code to remove
         legendQuantile.append("g")
           .attr("class", "x axis legRemove")
           .attr("transform",
@@ -553,16 +576,11 @@
           return barIDs.includes(i)
         });
 
-        console.log(subData)
-
         let xStateScale = d3.scaleBand()
           .domain(barStates)
           .range([0, wSpend - marginSpend.left]);
 
         let bottomAxisSpend = d3.axisBottom(xStateScale);
-
-        // undefined
-        console.log(spendExtent[1])
 
         let ySpendScale = d3.scaleLinear()
           .domain([0, spendExtent[1]])
@@ -625,7 +643,14 @@
           .style("font-family", "monospace")
           .style("font-weight", "bold");
 
-        console.log("Bar Debugging")
+        spendAnno.append("text")
+          .attr("class", "chart-title remove")
+          .attr("transform", `translate(${spendChartH / 2 + marginSpend.left}, ${marginSpend.top})`)
+          .style("text-anchor", "middle")
+          .text(spendYLabel + " for Elementary-Secondary (2022)")
+          .attr("fill", "black")
+          .style("font-family", "monospace")
+          .style("font-weight", "bold");
 
         let barW = 20
 
@@ -663,12 +688,9 @@
           return barIDs.includes(i)
         });
 
-        console.log("HKUGJFHDFGIHLGF")
-        console.log(barStates)
-
         let xStateScale = d3.scaleBand()
           .domain(barStates)
-          .range([0, wSpend - marginSpend.left]);
+          .range([0, wMath - marginMath.left]);
 
         // default: sat
         let perfExtent = [200, 800]
@@ -676,7 +698,7 @@
         let yReadLabel = "SAT ERW Scores"
 
         if (perfVarMath == "act_math") {
-          perfExtent = [1, 36]
+          perfExtent = [2, 36]
           yMathLabel = "ACT Math Scores"
           yReadLabel = "ACT Reading + English Scores"
         }
@@ -742,6 +764,15 @@
           .style("font-family", "monospace")
           .style("font-weight", "bold");
 
+        mathAnno.append("text")
+          .attr("class", "chart-title removePerf")
+          .attr("transform", `translate(${mathChartH / 2 + marginMath.left}, ${marginMath.top})`)
+          .style("text-anchor", "middle")
+          .text("Average " + yMathLabel + " (2022)")
+          .attr("fill", "black")
+          .style("font-family", "monospace")
+          .style("font-weight", "bold");
+
         let barW = 20
 
         mathChart.selectAll("rect.pos")
@@ -800,12 +831,20 @@
           .style("font-family", "monospace")
           .style("font-weight", "bold");
 
-
         readAnno.append("text")
           .attr("class", "y-label removePerf")
           .attr("transform", `translate(${marginRead.right}, ${readChartH / 2}) rotate(-90)`)
           .style("text-anchor", "middle")
           .text(yReadLabel)
+          .attr("fill", "black")
+          .style("font-family", "monospace")
+          .style("font-weight", "bold");
+
+        readAnno.append("text")
+          .attr("class", "chart-title removePerf")
+          .attr("transform", `translate(${readChartH / 2 + marginRead.left}, ${marginRead.top})`)
+          .style("text-anchor", "middle")
+          .text("Average " + yReadLabel + " (2022)")
           .attr("fill", "black")
           .style("font-family", "monospace")
           .style("font-weight", "bold");
@@ -823,8 +862,237 @@
         readChart.raise()
       }
 
+      let scatterAnno = svgScatter.append("g").attr("id", "scatterAnno");
+
+      function updateScatter(spendExtent, perfVarMath, perfVarRead) {
+
+        console.log("Scatter Debugging")
+
+        let xSpendScale = d3.scaleLinear()
+          .domain(spendExtent)
+          .range([0, scatterChartW])
+
+        let perfExtent = [400, 1600]
+        let yScatterLabel = "SAT Total Scores"
+        let yCol = "sat_total"
+        let gradeTest = perfVarMath == "g4_math" || perfVarMath == "g8_math"
+        let colorCol = "sat_perc"
+
+
+        if (perfVarMath == "act_math") {
+          perfExtent = [1, 36]
+          yScatterLabel = "ACT Composite Scores"
+          yCol = "act_total"
+          colorCol = "act_perc"
+        }
+        if (perfVarMath == "g4_math") {
+          perfExtent = [175, 325]
+          yScatterLabel = "NAEP Grade 4 Scores"
+        }
+        if (perfVarMath == "g8_math") {
+          perfExtent = [175, 325]
+          yScatterLabel = "NAEP Grade 8 Scores"
+        }
+
+        let colorPercScale = d3.scaleQuantile()
+          .domain([0, 100])
+          .range(["#eec4dc", "#e27bb1", "#e44b8d", "#bb437e", "#7f3667"]);
+
+        let yPerfScale = d3.scaleLinear()
+          .domain(perfExtent)
+          .range([scatterChartH, 0])
+
+        let leftAxisScatter = d3.axisLeft(yPerfScale).tickFormat(d3.format("d"))
+
+        scatterAnno.append("g")
+          .attr("class", "y axis removeScatter")
+          .attr("transform", `translate(${marginScatter.left},${marginScatter.top})`)
+          .call(leftAxisScatter)
+
+        let leftGridlinesScatter = d3.axisLeft(yPerfScale)
+          .tickSize(-scatterChartW - marginScatter.right)
+          .tickFormat("")
+
+        scatterAnno.append("g")
+          .attr("class", "y gridlines removeScatter")
+          .attr("transform", `translate(${marginScatter.left},${marginScatter.top})`)
+          .call(leftGridlinesScatter)
+
+        let bottomAxisScatter = d3.axisBottom(xSpendScale).tickFormat(d3.format("$.2s")).ticks(8);
+
+        scatterAnno.append("g")
+          .attr("class", "x axis removeScatter")
+          .attr("transform", `translate(${marginScatter.left + marginScatter.right / 2},${scatterChartH + marginScatter.top})`)
+          .call(bottomAxisScatter)
+
+        let xSpendLabel = "Per Pupil Current Spending"
+
+        if (spendVar == "pp_rev_fed") {
+          xSpendLabel = "Federal Revenue Per Pupil"
+        }
+        if (spendVar == "pp_rev_state") {
+          xSpendLabel = "State Revenue Per Pupil"
+        }
+        if (spendVar == "pp_rev_local") {
+          xSpendLabel = "Local Revenue Per Pupil"
+        }
+
+        scatterAnno.append("text")
+          .attr("class", "x-label removeScatter")
+          .attr("transform",
+            `translate(${scatterChartW / 2 + marginScatter.left}, ${hScatter - marginScatter.bottom + 4 * marginScatter.top})`
+          )
+          .style("text-anchor", "middle")
+          .text(xSpendLabel)
+          .attr("fill", "black")
+          .style("font-family", "monospace")
+          .style("font-weight", "bold");
+
+        scatterAnno.append("text")
+          .attr("class", "y-label removeScatter")
+          .attr("transform", `translate(${marginScatter.right}, ${scatterChartH / 2}) rotate(-90)`)
+          .style("text-anchor", "middle")
+          .text(yScatterLabel)
+          .attr("fill", "black")
+          .style("font-family", "monospace")
+          .style("font-weight", "bold");
+
+        if (!gradeTest) {
+          d3.selectAll("circle.p2").remove()
+
+          scatterChart.selectAll("circle.point")
+            .data(edSpend)
+            .join("circle")
+            .attr("class", "point")
+            .attr("opacity", 0.75)
+            .attr("cx", d => xSpendScale(d[spendVar]) + marginScatter.right / 2)
+            .attr("cy", d => yPerfScale(d[yCol]))
+            .attr("r", 5)
+            .on("mouseover", circleMouseOver)
+            .on("mouseout", circleMouseOut)
+            .attr("fill", d => {
+              if (gradeTest) { return "blue" }
+              else { return colorPercScale(d[colorCol]) }
+
+            })
+        } else {
+          let mathData = edSpend.filter((d) => {
+            return d[perfVarMath] > 0
+          });
+
+          let readData = edSpend.filter((d) => {
+            return d[perfVarRead] > 0
+          });
+
+          scatterChart.selectAll("circle.point")
+            .data(mathData)
+            .join("circle")
+            .attr("class", "point")
+            .attr("opacity", 0.75)
+            .attr("cx", d => xSpendScale(d[spendVar]) + marginScatter.right / 2)
+            .attr("cy", d => yPerfScale(d[perfVarMath]))
+            .attr("r", 5)
+            .on("mouseover", circleMouseOver)
+            .on("mouseout", circleMouseOut)
+            .attr("fill", d => NAEPColor(d[perfVarMath], perfVarMath))
+
+          scatterChart.selectAll("circle.p2")
+            .data(readData)
+            .join("circle")
+            .attr("class", "p2")
+            .attr("opacity", 0.75)
+            .attr("cx", d => xSpendScale(d[spendVar]) + marginScatter.right / 2)
+            .attr("cy", d => yPerfScale(d[perfVarRead]))
+            .attr("r", 5)
+            .on("mouseover", circleMouseOver)
+            .on("mouseout", circleMouseOut)
+            .attr("fill", d => NAEPColor(d[perfVarRead], perfVarRead))
+        }
+
+        scatterChart.raise()
+      }
+
+      function NAEPColor(totalScore, perfVar) {
+        // color math and reading differently 
+        // color differently based on naep category (basic, proficient, advanced)
+        let coolColors = ["#3acadf", "#729efd", "#8a64d6", "#5c3a92"]
+        let warmColors = ["#ffc100", "#ff9800", "#ff5607", "#f6412d"]
+
+        // this categorization comes from NAEP
+        if (perfVar == "g4_math") {
+          if (totalScore < 214) {
+            return warmColors[0]
+          }
+          if (totalScore >= 214 && totalScore < 249) {
+            return warmColors[1]
+          }
+          if (totalScore >= 249 && totalScore < 282) {
+            return warmColors[2]
+          }
+          if (totalScore >= 282) {
+            return warmColors[3]
+          }
+        }
+        if (perfVar == "g4_read") {
+          if (totalScore < 208) {
+            return coolColors[0]
+          }
+          if (totalScore >= 208 && totalScore < 238) {
+            return coolColors[1]
+          }
+          if (totalScore >= 238 && totalScore < 268) {
+            return coolColors[2]
+          }
+          if (totalScore >= 268) {
+            return coolColors[3]
+          }
+        }
+        if (perfVar == "g8_math") {
+          if (totalScore < 262) {
+            return warmColors[0]
+          }
+          if (totalScore >= 262 && totalScore < 299) {
+            return warmColors[1]
+          }
+          if (totalScore >= 299 && totalScore < 333) {
+            return warmColors[2]
+          }
+          if (totalScore >= 333) {
+            return warmColors[3]
+          }
+        }
+        if (perfVar == "g8_read") {
+          if (totalScore < 243) {
+            return coolColors[0]
+          }
+          if (totalScore >= 243 && totalScore < 281) {
+            return coolColors[1]
+          }
+          if (totalScore >= 281 && totalScore < 323) {
+            return coolColors[2]
+          }
+          if (totalScore >= 323) {
+            return coolColors[3]
+          }
+        }
+      }
+
+      function circleMouseOver() {
+        console.log("Circle hover")
+        d3.select(this)
+          .attr("stroke", "black")
+          .attr("stroke-width", 2)
+      }
+
+      function circleMouseOut() {
+        d3.select(this)
+          .attr("stroke", "")
+          .attr("stroke-width", 0)
+      }
+
       updateGraph([], spendExtent)
       updatePerformance([], spendExtent, perfVarMath, perfVarRead)
+      updateScatter(spendExtent, perfVarMath, perfVarRead)
 
       // ----- Button Functionality -----
       let ppcsButton = d3.select("#opPPCS")
@@ -847,6 +1115,9 @@
           updateGraph(selectedStates, spendExtent)
           updatePerformance(selectedStates, spendExtent, perfVarMath, perfVarRead)
 
+          d3.selectAll("g.removeScatter").remove()
+          d3.selectAll("text.removeScatter").remove()
+          updateScatter(spendExtent, perfVarMath, perfVarRead)
         }
       })
 
@@ -870,6 +1141,9 @@
           updateGraph(selectedStates, spendExtent)
           updatePerformance(selectedStates, spendExtent, perfVarMath, perfVarRead)
 
+          d3.selectAll("g.removeScatter").remove()
+          d3.selectAll("text.removeScatter").remove()
+          updateScatter(spendExtent, perfVarMath, perfVarRead)
         }
       })
 
@@ -893,6 +1167,9 @@
           updateGraph(selectedStates, spendExtent)
           updatePerformance(selectedStates, spendExtent, perfVarMath, perfVarRead)
 
+          d3.selectAll("g.removeScatter").remove()
+          d3.selectAll("text.removeScatter").remove()
+          updateScatter(spendExtent, perfVarMath, perfVarRead)
         }
       })
 
@@ -916,6 +1193,9 @@
           updateGraph(selectedStates, spendExtent)
           updatePerformance(selectedStates, spendExtent, perfVarMath, perfVarRead)
 
+          d3.selectAll("g.removeScatter").remove()
+          d3.selectAll("text.removeScatter").remove()
+          updateScatter(spendExtent, perfVarMath, perfVarRead)
         }
       })
 
@@ -935,6 +1215,10 @@
           d3.selectAll("g.removePerf").remove()
           d3.selectAll("text.removePerf").remove()
           updatePerformance(selectedStates, spendExtent, perfVarMath, perfVarRead)
+
+          d3.selectAll("g.removeScatter").remove()
+          d3.selectAll("text.removeScatter").remove()
+          updateScatter(spendExtent, perfVarMath, perfVarRead)
         }
       })
 
@@ -953,6 +1237,10 @@
           d3.selectAll("g.removePerf").remove()
           d3.selectAll("text.removePerf").remove()
           updatePerformance(selectedStates, spendExtent, perfVarMath, perfVarRead)
+
+          d3.selectAll("g.removeScatter").remove()
+          d3.selectAll("text.removeScatter").remove()
+          updateScatter(spendExtent, perfVarMath, perfVarRead)
         }
       })
 
@@ -971,6 +1259,10 @@
           d3.selectAll("g.removePerf").remove()
           d3.selectAll("text.removePerf").remove()
           updatePerformance(selectedStates, spendExtent, perfVarMath, perfVarRead)
+
+          d3.selectAll("g.removeScatter").remove()
+          d3.selectAll("text.removeScatter").remove()
+          updateScatter(spendExtent, perfVarMath, perfVarRead)
         }
       })
 
@@ -989,6 +1281,10 @@
           d3.selectAll("g.removePerf").remove()
           d3.selectAll("text.removePerf").remove()
           updatePerformance(selectedStates, spendExtent, perfVarMath, perfVarRead)
+
+          d3.selectAll("g.removeScatter").remove()
+          d3.selectAll("text.removeScatter").remove()
+          updateScatter(spendExtent, perfVarMath, perfVarRead)
         }
       })
     }
