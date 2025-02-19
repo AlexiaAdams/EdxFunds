@@ -53,13 +53,19 @@
       font-size: larger;
     }
 
-    .row {
+    .row,
+    .row2 {
       display: flex;
       flex-direction: row;
     }
 
     .row div {
       width: 50%;
+    }
+
+    .row2 div {
+      width: 40%;
+      margin-left: auto
     }
 
     .row div h3 {
@@ -84,6 +90,7 @@
       width: 25%;
       text-align: center;
       cursor: pointer;
+      border: 2px solid black;
     }
 
     .selectedOption {
@@ -95,18 +102,31 @@
       display: block;
       margin: auto;
     }
+
+    #dc,
+    #dcText {
+      cursor: pointer;
+    }
+
+    .details {
+      /* width: 10%; */
+      background-color: #fca785;
+      border: 2px solid black;
+      padding: 1%;
+      font-size: larger;
+    }
   </style>
 
 </head>
 
 <body>
 
-  <h1>Does High Academic Performance Rely on High Spending?</h1>
+  <h1>Does More Money Mean Better Academic Performance?</h1>
 
   <p class="textBlurb">
-    <strong>Education is the foundation for societal growth and innovation.</strong> Since each state governs how funds
-    for education are spent, we want to see if more funding results in higher test scores throughout elementary and
-    secondary programs.
+    <strong>Education is the foundation for societal growth and innovation.</strong> Each state sets their own standards
+    for education. We wanted to investgate the relationship between academic performance in public elementary and
+    secondary schools and the current spending and revenue (broken up by government level) per pupil.
 
     <br>
     <br>
@@ -118,13 +138,13 @@
 
     <div class="row">
       <div>
-        <h3>Spending</h3>
+        <h3>Finances</h3>
 
         <ul class="options">
-          <li id="opPPCS" class="selectedOption">PPCS</li>
-          <li id="opFed">Federal</li>
-          <li id="opState">State</li>
-          <li id="opLocal">Local</li>
+          <li id="opPPCS" class="selectedOption">Current Spending</li>
+          <li id="opFed">Federal Revenue</li>
+          <li id="opState">State Revenue</li>
+          <li id="opLocal">Local Revenue</li>
         </ul>
 
       </div>
@@ -146,7 +166,6 @@
 
   </div>
 
-  <!-- <h2 id="mapHeader">Per Pupil Current Spending for Elementary-Secondary (2022)</h2> -->
   <div class="row graph-row">
     <svg id="map1" width="750" height="750"></svg>
     <svg id="spending" height="600" width="600"></svg>
@@ -156,12 +175,34 @@
     <svg id="read" width="500" height="500"></svg>
   </div>
 
-  <p>
-    Something important to note is that not everyone takes the SAT and not everyone takes the ACT. Some states have low
-    percentages of seniors taking the SAT, but the scores are higher than other states. The same goes for the ACT.
-  </p>
+  <br>
 
-  <svg id="scatter" width="500" height="500"></svg>
+  <div class="row2">
+    <svg id="scatter" width="500" height="500"></svg>
+    <svg id="scatterLegend" width="200" height="400"></svg>
+
+    <div class="details">
+      <p><strong>SAT</strong>: The total SAT score ranges from 400 to 1600.</p>
+      <p><strong>ACT</strong>: The total ACT score ranges from 1 to 36.</p>
+      <p><strong>NAEP</strong>: The total NAEP score ranges from 0 to 500.</p>
+
+      <p>States with low participation rates for SAT and ACT tests perform better than states that have almost full
+        participation; this may be because of students wanting to be competitive in the college application process by
+        taking a locally "unpopular" standardized test.</p>
+      <br>
+      <br>
+      <!-- <p>
+        Overall, it is difficult to see if more money correlates to better performance on this scale; we don't know
+        <em>how</em> each state spends their money.
+      </p> -->
+    </div>
+  </div>
+
+
+
+  <p>
+    The SAT ranges from 400 to 1600. The ACT ranges from 1 to 36. The NAEP ranges from 0 to 500.
+  </p>
 
   <script>
     // Map of spending
@@ -208,6 +249,7 @@
       .attr("id", "mathChart")
       .attr("transform", `translate(${marginRead.left},${marginRead.top})`);
 
+    // Scatter plot
     const svgScatter = d3.select("#scatter")
     const wScatter = svgScatter.attr("width")
     const hScatter = svgScatter.attr("height")
@@ -218,6 +260,10 @@
       .attr("id", "scatterChart")
       .attr("transform", `translate(${marginScatter.left},${marginScatter.top})`);
 
+    // Legend for scatter plot
+    const svgLeg = d3.select("#scatterLegend");
+    const legW = svgLeg.attr("width");
+    const legH = svgLeg.attr("height");
 
     const requestData = async function () {
 
@@ -245,6 +291,32 @@
       mapChart.append("path").datum(statesMesh)
         .attr("class", "outline")
         .attr("d", path);
+
+      let dcButton = mapChart.append("g")
+        .attr("class", "dc")
+
+      dcButton.append("circle")
+        .style("stroke", "black")
+        .style("stroke-width", 2)
+        .attr("cx", chartWidth - 2 * (margin.left + margin.right))
+        .attr("cy", chartHeight - 400)
+        .attr("r", 20)
+        .attr("id", "dc")
+        .on("mouseover", dcMouseOver)
+        .on("mouseout", dcMouseOut)
+        .on("click", dcMouseChange)
+
+      dcButton.append("text")
+        .text("DC")
+        .attr("x", chartWidth - 2 * (margin.left + margin.right))
+        .attr("y", chartHeight - 400 - 5)
+        .attr("text-anchor", "middle")
+        .attr("alignment-baseline", "hanging")
+        .style("fill", "white")
+        .attr("id", "dcText")
+        .on("mouseover", dcMouseOver)
+        .on("mouseout", dcMouseOut)
+        .on("click", dcMouseChange)
 
       // ------------ Per Pupil Spending by State ------------
       // Can't use d3.autotype because it causes errors with the rev vars
@@ -308,11 +380,17 @@
         actPercs[d.code] = d["act_perc"]
       });
 
+      // Highlighting states on click
+      let selectedStates = []
+
       // color options
       let greenColors = ["#cce7c9", "#8bca84", "#5bb450", "#46923c", "#276221"]
       let purpleColors = ["#bca0dc", "#b491c8", "#7c5295", "#663a82", "#52307c"]
       let cyanColors = ["#45f7e5", "#3bd1c2", "#33b3a6", "#289086", "#207169"]
       let blueColors = ["#caf0f8", "#90e0ef", "#00b4d8", "#0077b6", "#023e8a"]
+      let pinkColors = ["#eec4dc", "#e27bb1", "#e44b8d", "#bb437e", "#7f3667"]
+      let coolColors = ["#3acadf", "#729efd", "#8a64d6", "#5c3a92"]
+      let warmColors = ["#ffc100", "#ff9800", "#ff5607", "#f6412d"]
 
       let useColors = greenColors
 
@@ -342,6 +420,18 @@
         mapChart.selectAll(".state")
           .data(edSpend)
           .style("fill", d => spendColorScale(spendDct[d.code]))
+
+        let borderColor = "yellow"
+        let borderSize = 3
+        if (selectedStates.indexOf("District of Columbia") === -1) {
+          borderColor = "black"
+          borderSize = 2
+        }
+
+        dcButton.select("circle")
+          .attr("fill", spendColorScale(spendDct["DC"]))
+          .attr("stroke", borderColor)
+          .attr("stroke-width", borderSize)
 
         // Create color scale legend
         let legendQuantile = mapChart.append("g")
@@ -389,8 +479,8 @@
       let spendVar = spendValues[2]
 
       // Tool Tip
-      let toolTipWidth = 150
-      let toolTipHeight = 100
+      let toolTipWidth = 200
+      let toolTipHeight = 75
 
       let mouseMesh = mapChart.append("path")
         .attr("class", "mouseover outline")
@@ -435,6 +525,66 @@
         .attr("x", xPos + (toolTipWidth / 2))
         .attr("y", yPos + 25);
 
+      // DC Mouseover
+      function dcMouseOver() {
+        toolTip.style("visibility", "visible");
+        let dc = d3.select("#dc")
+        var format = d3.format("$,")
+        stateText.text("District of Columbia (DC)")
+        ppcsText.text(format(edSpend[8][spendVar]))
+
+        var mou = topojson.mesh(us, us.objects.states, function (a, b) {
+          return a.id < 72 && a.properties.state === "District of Columbia"
+            || b.id < 72 && b.properties.state === "District of Columbia"
+        });
+
+        mouseMesh.datum(mou).attr("d", path)
+
+        if (selectedStates.indexOf("District of Columbia") === -1) {
+          dc.style("stroke", "orange")
+        }
+      }
+
+      function dcMouseOut() {
+        toolTip.style("visibility", "hidden");
+        let dc = d3.select("#dc")
+        if (selectedStates.indexOf("District of Columbia") === -1) {
+          dc.style("stroke", "black")
+        }
+        mouseMesh.attr("d", "")
+      }
+
+      function dcMouseChange() {
+        let dc = d3.select("#dc")
+        if (selectedStates.length < 5 && selectedStates.indexOf("District of Columbia") === -1) {
+          selectedStates.push("District of Columbia");
+          console.log("Turn Yellow")
+          highlightState(selectedStates);
+          dc.style("stroke", "yellow")
+            .style("stroke-width", 3)
+        } else {
+          if (selectedStates.length == 5 && selectedStates.indexOf("District of Columbia") === -1) {
+            console.log("Too many states selected. Click a selected state to remove.")
+          } else {
+            console.log("Turn Orange")
+            selectedStates.splice(selectedStates.indexOf("District of Columbia"), 1)
+            highlightState(selectedStates);
+            dc.style("stroke", "orange")
+              .style("stroke-width", 2)
+          }
+        }
+        updateStateList()
+
+        d3.selectAll("g.remove").remove()
+        d3.selectAll("text.remove").remove()
+        updateGraph(selectedStates, spendExtent)
+
+        d3.selectAll("g.removePerf").remove()
+        d3.selectAll("text.removePerf").remove()
+        updatePerformance(selectedStates, spendExtent, perfVarMath, perfVarRead)
+
+      }
+
       // Mouse In
       function mouseEntersState() {
         toolTip.style("visibility", "visible");
@@ -461,9 +611,6 @@
 
         mouseMesh.attr("d", "")
       }
-
-      // Highlighting states on click
-      let selectedStates = []
 
       function highlightState(selectedStates) {
         let len = selectedStates.length
@@ -525,6 +672,18 @@
           }
         }
 
+        updateStateList()
+
+        d3.selectAll("g.remove").remove()
+        d3.selectAll("text.remove").remove()
+        updateGraph(selectedStates, spendExtent)
+
+        d3.selectAll("g.removePerf").remove()
+        d3.selectAll("text.removePerf").remove()
+        updatePerformance(selectedStates, spendExtent, perfVarMath, perfVarRead)
+      }
+
+      function updateStateList() {
         const ssHeader = d3.select("#stateSelect");
         if (selectedStates.length == 0) {
           ssHeader.text("States Selected: None")
@@ -536,15 +695,6 @@
           acc_str = acc_str.substring(0, acc_str.length - 2)
           ssHeader.text(acc_str)
         }
-
-        d3.selectAll("g.remove").remove()
-        d3.selectAll("text.remove").remove()
-        updateGraph(selectedStates, spendExtent)
-
-        d3.selectAll("g.removePerf").remove()
-        d3.selectAll("text.removePerf").remove()
-        updatePerformance(selectedStates, spendExtent, perfVarMath, perfVarRead)
-
       }
 
       // ------------ All Bar Charts  ------------
@@ -664,12 +814,24 @@
           .attr("height", d => spendChartH - ySpendScale(d[spendVar]))
           .attr("width", d => barW)
 
-        spendChart.raise()
+        let noData = subData.filter((d) => {
+          return d[spendVar] == 0
+        });
 
+        spendChart.append("text")
+          .data(noData)
+          .text("N/A")
+          .attr("class", "no-data remove")
+          .attr("x", d => xStateScale(d.code) - (barW / 2) + (xStateScale.bandwidth() / 2))
+          .attr("y", spendChartH / 2)
+          .attr("fill", "black")
+          .style("font-family", "monospace")
+          .style("font-weight", "bold");
+
+        spendChart.raise()
       }
 
       function updatePerformance(selectedStates, spendExtent, perfVarMath, perfVarRead) {
-
         let barStates = []
         barStates.push("US")
 
@@ -785,10 +947,24 @@
           .attr("height", d => mathChartH - yMathScale(d[perfVarMath]))
           .attr("width", d => barW)
 
+        let noDataMath = subData.filter((d) => {
+          return d[perfVarMath] == 0
+        });
+
+        mathChart.selectAll("text")
+          .data(noDataMath)
+          .join("text")
+          .text("N/A")
+          .attr("class", "no-data removePerf")
+          .attr("x", d => xStateScale(d.code) - (barW / 2) + (xStateScale.bandwidth() / 2))
+          .attr("y", mathChartH / 2)
+          .attr("fill", "black")
+          .style("font-family", "monospace")
+          .style("font-weight", "bold");
+
         mathChart.raise()
 
         // ---- Reading ----
-
         let yReadScale = d3.scaleLinear()
           .domain(perfExtent)
           .range([readChartH, 0])
@@ -859,6 +1035,21 @@
           .attr("height", d => readChartH - yReadScale(d[perfVarRead]))
           .attr("width", d => barW)
 
+        let noDataRead = subData.filter((d) => {
+          return d[perfVarRead] == 0
+        });
+
+        readChart.selectAll("text")
+          .data(noDataRead)
+          .join("text")
+          .text("N/A")
+          .attr("class", "no-data removePerf")
+          .attr("x", d => xStateScale(d.code) - (barW / 2) + (xStateScale.bandwidth() / 2))
+          .attr("y", readChartH / 2)
+          .attr("fill", "black")
+          .style("font-family", "monospace")
+          .style("font-weight", "bold");
+
         readChart.raise()
       }
 
@@ -872,7 +1063,7 @@
           .domain(spendExtent)
           .range([0, scatterChartW])
 
-        let perfExtent = [400, 1600]
+        let perfExtent = [800, 1300]
         let yScatterLabel = "SAT Total Scores"
         let yCol = "sat_total"
         let gradeTest = perfVarMath == "g4_math" || perfVarMath == "g8_math"
@@ -880,7 +1071,7 @@
 
 
         if (perfVarMath == "act_math") {
-          perfExtent = [1, 36]
+          perfExtent = [15, 30]
           yScatterLabel = "ACT Composite Scores"
           yCol = "act_total"
           colorCol = "act_perc"
@@ -896,7 +1087,7 @@
 
         let colorPercScale = d3.scaleQuantile()
           .domain([0, 100])
-          .range(["#eec4dc", "#e27bb1", "#e44b8d", "#bb437e", "#7f3667"]);
+          .range(pinkColors);
 
         let yPerfScale = d3.scaleLinear()
           .domain(perfExtent)
@@ -957,6 +1148,13 @@
           .style("font-family", "monospace")
           .style("font-weight", "bold");
 
+        let legendScatter = svgLeg.append("g")
+          .attr("class", "legend removeScatter")
+
+        let scatterLegendScale = d3.scaleOrdinal()
+          .domain([0, 20, 40, 60, 80, 100])
+          .range([0, 25, 50, 75, 100, 125])
+
         if (!gradeTest) {
           d3.selectAll("circle.p2").remove()
 
@@ -973,8 +1171,36 @@
             .attr("fill", d => {
               if (gradeTest) { return "blue" }
               else { return colorPercScale(d[colorCol]) }
-
             })
+
+          for (let i = 0; i < pinkColors.length; i++) {
+            legendScatter.append("rect")
+              .attr("fill", pinkColors[i])
+              .attr("stroke", "black")
+              .attr("stroke-width", 2)
+              .attr("x", legW / 2)
+              .attr("y", legH / 2 + (i * 25))
+              .attr("width", 25)
+              .attr("height", 25)
+              .attr("class", "removeScatter")
+          }
+
+          let rightAxisScatter = d3.axisRight(scatterLegendScale)
+
+          legendScatter.append("g")
+            .attr("class", "removeScatter")
+            .attr("transform", `translate(${legW / 2 + 25},${legH / 2})`)
+            .call(rightAxisScatter)
+
+          legendScatter.append("text")
+            .attr("class", "removeScatter")
+            .attr("transform", `translate(${legW / 2}, ${legH / 2 - 25})`)
+            .style("text-anchor", "middle")
+            .text("Participation Rate (%)")
+            .attr("fill", "black")
+            .style("font-family", "monospace")
+            .style("font-weight", "bold");
+
         } else {
           let mathData = edSpend.filter((d) => {
             return d[perfVarMath] > 0
@@ -1007,28 +1233,104 @@
             .on("mouseover", circleMouseOver)
             .on("mouseout", circleMouseOut)
             .attr("fill", d => NAEPColor(d[perfVarRead], perfVarRead))
+
+
+          for (let i = 0; i < coolColors.length; i++) {
+            // cool read
+            legendScatter.append("rect")
+              .attr("fill", coolColors[coolColors.length - i - 1])
+              .attr("stroke", "black")
+              .attr("stroke-width", 2)
+              .attr("x", legW / 4 - 25)
+              .attr("y", legH / 2 + (i * 25))
+              .attr("width", 25)
+              .attr("height", 25)
+              .attr("class", "removeScatter")
+
+            // warm math
+            legendScatter.append("rect")
+              .attr("fill", warmColors[coolColors.length - i - 1])
+              .attr("stroke", "black")
+              .attr("stroke-width", 2)
+              .attr("x", legW / 4)
+              .attr("y", legH / 2 + (i * 25))
+              .attr("width", 25)
+              .attr("height", 25)
+              .attr("class", "removeScatter")
+          }
+
+          legendScatter.append("text")
+            .attr("class", "removeScatter")
+            .attr("transform", `translate(${legW / 2}, ${legH / 2 - 50})`)
+            .style("text-anchor", "middle")
+            .text("NAEP Achievement Levels")
+            .attr("fill", "black")
+            .style("font-family", "monospace")
+            .style("font-weight", "bold");
+
+          legendScatter.append("text")
+            .attr("class", "removeScatter")
+            .attr("transform", `translate(${legW / 2}, ${legH / 2 - 25})`)
+            .style("text-anchor", "middle")
+            .text("Read/Math")
+            .attr("fill", "black")
+            .style("font-family", "monospace")
+            .style("font-weight", "bold");
+
+          // legend labels
+          legendScatter.append("text")
+            .attr("class", "removeScatter")
+            .attr("transform", `translate(${legW / 2 + 25}, ${legH / 2 + 15})`)
+            .style("text-anchor", "middle")
+            .text("Advanced")
+            .attr("fill", "black")
+            .style("font-family", "monospace")
+            .style("font-weight", "bold");
+          legendScatter.append("text")
+            .attr("class", "removeScatter")
+            .attr("transform", `translate(${legW / 2 + 25}, ${legH / 2 + 40})`)
+            .style("text-anchor", "middle")
+            .text("Proficient")
+            .attr("fill", "black")
+            .style("font-family", "monospace")
+            .style("font-weight", "bold");
+          legendScatter.append("text")
+            .attr("class", "removeScatter")
+            .attr("transform", `translate(${legW / 2 + 25}, ${legH / 2 + 65})`)
+            .style("text-anchor", "middle")
+            .text("Basic")
+            .attr("fill", "black")
+            .style("font-family", "monospace")
+            .style("font-weight", "bold");
+          legendScatter.append("text")
+            .attr("class", "removeScatter")
+            .attr("transform", `translate(${legW / 2 + 25}, ${legH / 2 + 90})`)
+            .style("text-anchor", "middle")
+            .text("Below Basic")
+            .attr("fill", "black")
+            .style("font-family", "monospace")
+            .style("font-weight", "bold");
         }
 
         scatterChart.raise()
       }
 
       function NAEPColor(totalScore, perfVar) {
-        // color math and reading differently 
-        // color differently based on naep category (basic, proficient, advanced)
-        let coolColors = ["#3acadf", "#729efd", "#8a64d6", "#5c3a92"]
-        let warmColors = ["#ffc100", "#ff9800", "#ff5607", "#f6412d"]
-
         // this categorization comes from NAEP
         if (perfVar == "g4_math") {
+          // Below Basic
           if (totalScore < 214) {
             return warmColors[0]
           }
+          // Basic
           if (totalScore >= 214 && totalScore < 249) {
             return warmColors[1]
           }
+          // Proficient
           if (totalScore >= 249 && totalScore < 282) {
             return warmColors[2]
           }
+          // Advanced
           if (totalScore >= 282) {
             return warmColors[3]
           }
@@ -1077,16 +1379,142 @@
         }
       }
 
+      let toolTipScatter = scatterChart.append("g")
+        .attr("class", "tooltip")
+        .attr("visibility", "hidden");
+
+      toolTipScatter.append("rect")
+        .attr("fill", "black")
+        .attr("opacity", .8)
+        .attr("rx", 6)
+        .attr("ry", 6)
+        .attr("x", scatterChartW - marginScatter.left * 3)
+        .attr("y", scatterChartH / 2 + marginScatter.bottom * 2)
+        .attr("width", 150)
+        .attr("height", 75);
+
+      let stText = toolTipScatter.append("text")
+        .attr("fill", "white")
+        .attr("text-anchor", "middle")
+        .attr("alignment-baseline", "hanging")
+        .attr("x", scatterChartW - marginScatter.left * 2 + 25)
+        .attr("y", scatterChartH / 2 + marginScatter.bottom * 2 + 5)
+
+      let scoreText = toolTipScatter.append("text")
+        .attr("fill", "white")
+        .attr("text-anchor", "middle")
+        .attr("alignment-baseline", "hanging")
+        .attr("x", scatterChartW - marginScatter.left * 2 + 25)
+        .attr("y", scatterChartH / 2 + marginScatter.bottom * 2 + 25)
+
+      let perfText = toolTipScatter.append("text")
+        .attr("fill", "white")
+        .attr("text-anchor", "middle")
+        .attr("alignment-baseline", "hanging")
+        .attr("x", scatterChartW - marginScatter.left * 2 + 25)
+        .attr("y", scatterChartH / 2 + marginScatter.bottom * 2 + 45)
+
       function circleMouseOver() {
-        console.log("Circle hover")
-        d3.select(this)
-          .attr("stroke", "black")
-          .attr("stroke-width", 2)
+        toolTipScatter.style("visibility", "visible");
+
+        let st = d3.select(this);
+
+        st.attr("stroke", "black")
+          .attr("stroke-width", 2);
+
+        stText.text(st.datum().state)
+
+        perfText.text("")
+
+        if (satButton.classed("selectedOption")) {
+          scoreText.text("Participation: " + st.datum()["sat_perc"] + "%")
+        }
+
+        if (actButton.classed("selectedOption")) {
+          scoreText.text("Participation: " + st.datum()["act_perc"] + "%")
+        }
+
+        if (g4Button.classed("selectedOption")) {
+          // math
+          if (st.classed("point")) {
+            let c = NAEPColor(st.datum()["g4_math"], "g4_math")
+            if (c == "#ffc100") {
+              scoreText.text("Below NAEP Basic")
+            }
+            if (c == "#ff9800") {
+              scoreText.text("NAEP Basic")
+            }
+            if (c == "#ff5607") {
+              scoreText.text("NAEP Proficient")
+            }
+            if (c == "#f6412d") {
+              scoreText.text("NAEP Advanced")
+            }
+            perfText.text("Math")
+          }
+          // reading
+          if (st.classed("p2")) {
+            let c = NAEPColor(st.datum()["g4_read"], "g4_read")
+            if (c == "#3acadf") {
+              scoreText.text("Below NAEP Basic")
+            }
+            if (c == "#729efd") {
+              scoreText.text("NAEP Basic")
+            }
+            if (c == "#8a64d6") {
+              scoreText.text("NAEP Proficient")
+            }
+            if (c == "#5c3a92") {
+              scoreText.text("NAEP Advanced")
+            }
+            perfText.text("Reading")
+          }
+        }
+
+        if (g8Button.classed("selectedOption")) {
+          // math
+          if (st.classed("point")) {
+            let c = NAEPColor(st.datum()["g8_math"], "g8_math")
+            if (c == "#ffc100") {
+              scoreText.text("Below NAEP Basic")
+            }
+            if (c == "#ff9800") {
+              scoreText.text("NAEP Basic")
+            }
+            if (c == "#ff5607") {
+              scoreText.text("NAEP Proficient")
+            }
+            if (c == "#f6412d") {
+              scoreText.text("NAEP Advanced")
+            }
+            perfText.text("Math")
+          }
+          // reading
+          if (st.classed("p2")) {
+            let c = NAEPColor(st.datum()["g8_read"], "g8_read")
+            if (c == "#3acadf") {
+              scoreText.text("Below NAEP Basic")
+            }
+            if (c == "#729efd") {
+              scoreText.text("NAEP Basic")
+            }
+            if (c == "#8a64d6") {
+              scoreText.text("NAEP Proficient")
+            }
+            if (c == "#5c3a92") {
+              scoreText.text("NAEP Advanced")
+            }
+            perfText.text("Reading")
+          }
+        }
       }
 
       function circleMouseOut() {
-        d3.select(this)
-          .attr("stroke", "")
+        toolTipScatter.style("visibility", "hidden");
+
+        let st = d3.select(this);
+
+        st.attr("stroke", "")
           .attr("stroke-width", 0)
       }
 
