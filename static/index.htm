@@ -459,7 +459,7 @@
       let blueColors = ["#caf0f8", "#90e0ef", "#00b4d8", "#0077b6", "#023e8a"]
       let pinkColors = ["#eec4dc", "#e27bb1", "#e44b8d", "#bb437e", "#7f3667"]
       let coolColors = ["#3acadf", "#729efd", "#8a64d6", "#5c3a92"]
-      let warmColors = ["#ffc100", "#ff9800", "#ff5607", "#f6412d"]
+      let warmColors = ["#ffc100", "#ff9800", "#ff5607", "#de3927"]
 
       let useColors = greenColors
 
@@ -1209,6 +1209,7 @@
         let bottomGridlinesScatter = d3.axisBottom(xSpendScale)
           .tickSize(scatterChartH)
           .tickFormat("")
+          .ticks(8);
 
         scatterAnno.append("g")
           .attr("class", "x gridlines2 removeScatter")
@@ -1497,7 +1498,7 @@
         .attr("rx", 6)
         .attr("ry", 6)
         .attr("x", scatterChartW - marginScatter.left * 3)
-        .attr("y", scatterChartH / 2 + marginScatter.bottom * 2)
+        .attr("y", scatterChartH / 2 + marginScatter.bottom * 2.5)
         .attr("width", 150)
         .attr("height", 75);
 
@@ -1506,21 +1507,21 @@
         .attr("text-anchor", "middle")
         .attr("alignment-baseline", "hanging")
         .attr("x", scatterChartW - marginScatter.left * 2 + 25)
-        .attr("y", scatterChartH / 2 + marginScatter.bottom * 2 + 5)
+        .attr("y", scatterChartH / 2 + marginScatter.bottom * 2.5 + 5)
 
       let scoreText = toolTipScatter.append("text")
         .attr("fill", "white")
         .attr("text-anchor", "middle")
         .attr("alignment-baseline", "hanging")
         .attr("x", scatterChartW - marginScatter.left * 2 + 25)
-        .attr("y", scatterChartH / 2 + marginScatter.bottom * 2 + 25)
+        .attr("y", scatterChartH / 2 + marginScatter.bottom * 2.5 + 25)
 
       let perfText = toolTipScatter.append("text")
         .attr("fill", "white")
         .attr("text-anchor", "middle")
         .attr("alignment-baseline", "hanging")
         .attr("x", scatterChartW - marginScatter.left * 2 + 25)
-        .attr("y", scatterChartH / 2 + marginScatter.bottom * 2 + 45)
+        .attr("y", scatterChartH / 2 + marginScatter.bottom * 2.5 + 45)
 
       function circleMouseOver() {
         toolTipScatter.style("visibility", "visible");
