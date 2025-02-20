@@ -10,7 +10,12 @@
       stroke: #bbb;
     }
 
-    .gridlines .domain {
+    .gridlines2 line {
+      stroke: #dcdcdc;
+    }
+
+    .gridlines .domain,
+    .gridlines2 .domain {
       stroke: none;
     }
 
@@ -31,7 +36,8 @@
     }
 
     #stickyHead {
-      background-color: #ff9971;
+      /* background-color: #ff9971; */
+      background-color: #ffa652;
       border: 2px solid black;
       padding: 1%;
       position: sticky;
@@ -41,13 +47,17 @@
 
     h1 {
       text-align: center;
-      background-color: #ffb79b;
+      /* background-color: #ffb79b; */
+      background-color: #ffcd90;
+
       border: 2px solid black;
       padding: 1%;
     }
 
     .textBlurb {
-      background-color: #fca785;
+      /* background-color: #fca785; */
+      background-color: #ffb76b;
+
       border: 2px solid black;
       padding: 1%;
       font-size: larger;
@@ -108,9 +118,28 @@
       cursor: pointer;
     }
 
+    #perf,
+    #fin {
+      background-color: #fbb99f;
+      border: 2px solid black;
+      padding: 1%;
+      margin-bottom: 2%;
+      font-size: large
+    }
+
+    #fin {
+      margin-top: 1%;
+    }
+
+    #perf p,
+    #fin p {
+      margin-right: 1%;
+      margin-left: 1%;
+    }
+
     .details {
       /* width: 10%; */
-      background-color: #fca785;
+      background-color: #fbb99f;
       border: 2px solid black;
       padding: 1%;
       font-size: larger;
@@ -166,15 +195,61 @@
 
   </div>
 
+  <div id="fin">
+    <h3>Finances</h3>
+    <div class="row">
+      <p>
+        <strong>Current Spending</strong> is the total spent for instructional and administrative services per pupil in
+        public elementary/secondary schools.
+      </p>
+      <p>
+        <strong>Federal Revenue</strong> is the revenue coming from federal sources per pupil in
+        public elementary/secondary schools.
+      </p>
+      <p>
+        <strong>State Revenue</strong> is the revenue coming from state sources per pupil in
+        public elementary/secondary schools.
+      </p>
+      <p>
+        <strong>Local Revenue</strong> is the revenue coming from local sources per pupil in
+        public elementary/secondary schools.
+      </p>
+    </div>
+
+  </div>
+
   <div class="row graph-row">
     <svg id="map1" width="750" height="750"></svg>
     <svg id="spending" height="600" width="600"></svg>
   </div>
+
+  <div id="perf">
+    <h3>Performance</h3>
+    <div class="row">
+      <p>
+        <strong>The National Assessment of Educational Progress (NAEP)</strong> offers reading and math assessments for
+        Fourth and Eigth graders. Each assessment's score ranges from 0 to 500.
+      </p>
+      <p>
+        <strong>The Scholastic Assessment Test (SAT)</strong> is a standardized test for students looking to apply to
+        college. The test has a math section and a reading and writing (erw) section, with a possible score range of 200
+        to 800 per section. The total SAT score ranges from 400 to 1600 (determined by adding section scores).
+      </p>
+      <p>
+        <strong>The American College Testing (ACT)</strong> is a standardized test for students looking to apply to
+        college. The test has 4 sections: math, reading, writing, and science. Each section's score ranges from 1 to 36.
+        The total ACT score ranges from 1 to 36 (determined by averaging section scores).
+      </p>
+    </div>
+  </div>
+
   <div class="row graph-row">
     <svg id="math" width="500" height="500"></svg>
     <svg id="read" width="500" height="500"></svg>
   </div>
 
+  <br>
+  <br>
   <br>
 
   <div class="row2">
@@ -182,27 +257,21 @@
     <svg id="scatterLegend" width="200" height="400"></svg>
 
     <div class="details">
-      <p><strong>SAT</strong>: The total SAT score ranges from 400 to 1600.</p>
-      <p><strong>ACT</strong>: The total ACT score ranges from 1 to 36.</p>
-      <p><strong>NAEP</strong>: The total NAEP score ranges from 0 to 500.</p>
+      <p>
+        <strong>SAT and ACT</strong>:
+        States with low participation rates for SAT and ACT tests tend to perform better than states that have almost
+        full participation; this may be because of students wanting to be competitive in the college application process
+        by taking the "other" standardized test.
+      </p>
+      <p>
+        <strong>NAEP</strong>: There are 4 achievement levels: Below Basic, Basic, Proficient, and Advanced. Students
+        performing at Proficient or greater demonstrate solid competency and performance on the subject matter.
+        Unfortunately, only a few states actually demonstrate this competency.
+      </p>
 
-      <p>States with low participation rates for SAT and ACT tests perform better than states that have almost full
-        participation; this may be because of students wanting to be competitive in the college application process by
-        taking a locally "unpopular" standardized test.</p>
-      <br>
-      <br>
-      <!-- <p>
-        Overall, it is difficult to see if more money correlates to better performance on this scale; we don't know
-        <em>how</em> each state spends their money.
-      </p> -->
     </div>
   </div>
 
-
-
-  <p>
-    The SAT ranges from 400 to 1600. The ACT ranges from 1 to 36. The NAEP ranges from 0 to 500.
-  </p>
 
   <script>
     // Map of spending
@@ -432,6 +501,27 @@
           .attr("fill", spendColorScale(spendDct["DC"]))
           .attr("stroke", borderColor)
           .attr("stroke-width", borderSize)
+
+        // title
+        let spendLabel = "Current Spending Per Pupil"
+        if (spendVar == "pp_rev_fed") {
+          spendLabel = "Federal Revenue Per Pupil"
+        }
+        if (spendVar == "pp_rev_state") {
+          spendLabel = "State Revenue Per Pupil"
+        }
+        if (spendVar == "pp_rev_local") {
+          spendLabel = "Local Revenue Per Pupil"
+        }
+
+        mapChart.append("text")
+          .attr("class", "legRemove")
+          .attr("transform", `translate(${chartWidth / 4}, ${margin.bottom * 10})`)
+          .style("text-anchor", "middle")
+          .text(spendLabel)
+          .attr("fill", "black")
+          .style("font-family", "monospace")
+          .style("font-weight", "bold");
 
         // Create color scale legend
         let legendQuantile = mapChart.append("g")
@@ -1105,7 +1195,7 @@
           .tickFormat("")
 
         scatterAnno.append("g")
-          .attr("class", "y gridlines removeScatter")
+          .attr("class", "y gridlines2 removeScatter")
           .attr("transform", `translate(${marginScatter.left},${marginScatter.top})`)
           .call(leftGridlinesScatter)
 
@@ -1115,6 +1205,15 @@
           .attr("class", "x axis removeScatter")
           .attr("transform", `translate(${marginScatter.left + marginScatter.right / 2},${scatterChartH + marginScatter.top})`)
           .call(bottomAxisScatter)
+
+        let bottomGridlinesScatter = d3.axisBottom(xSpendScale)
+          .tickSize(scatterChartH)
+          .tickFormat("")
+
+        scatterAnno.append("g")
+          .attr("class", "x gridlines2 removeScatter")
+          .attr("transform", `translate(${marginScatter.left + marginScatter.right / 2},${marginScatter.top})`)
+          .call(bottomGridlinesScatter)
 
         let xSpendLabel = "Per Pupil Current Spending"
 
@@ -1144,6 +1243,15 @@
           .attr("transform", `translate(${marginScatter.right}, ${scatterChartH / 2}) rotate(-90)`)
           .style("text-anchor", "middle")
           .text(yScatterLabel)
+          .attr("fill", "black")
+          .style("font-family", "monospace")
+          .style("font-weight", "bold");
+
+        scatterAnno.append("text")
+          .attr("class", "legRemove")
+          .attr("transform", `translate(${scatterChartW / 2 + marginScatter.left}, ${marginScatter.top})`)
+          .style("text-anchor", "middle")
+          .text("Spending vs Performance by State")
           .attr("fill", "black")
           .style("font-family", "monospace")
           .style("font-weight", "bold");
@@ -1720,12 +1828,6 @@
     requestData()
 
   </script>
-
-
 </body>
-
-
-
-
 
 </html>
