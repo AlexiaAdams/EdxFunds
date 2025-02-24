@@ -36,7 +36,6 @@
     }
 
     #stickyHead {
-      /* background-color: #ff9971; */
       background-color: #ffa652;
       border: 2px solid black;
       padding: 1%;
@@ -47,7 +46,6 @@
 
     h1 {
       text-align: center;
-      /* background-color: #ffb79b; */
       background-color: #ffcd90;
 
       border: 2px solid black;
@@ -55,7 +53,6 @@
     }
 
     .textBlurb {
-      /* background-color: #fca785; */
       background-color: #ffb76b;
 
       border: 2px solid black;
@@ -119,7 +116,8 @@
     }
 
     #perf,
-    #fin {
+    #fin,
+    #sp {
       background-color: #fbb99f;
       border: 2px solid black;
       padding: 1%;
@@ -138,7 +136,6 @@
     }
 
     .details {
-      /* width: 10%; */
       background-color: #fbb99f;
       border: 2px solid black;
       padding: 1%;
@@ -150,7 +147,7 @@
 
 <body>
 
-  <h1>Does More Money Mean Better Academic Performance?</h1>
+  <h1>Does More Money Towards Education Mean Better Academic Performance?</h1>
 
   <p class="textBlurb">
     <strong>Education is the foundation for societal growth and innovation.</strong> Each state sets their own standards
@@ -160,7 +157,7 @@
     <br>
     <br>
 
-    <em>Select up to 5 states from the map.</em>
+    <em>Select up to 11 states from the map.</em>
   </p>
 
   <div id="stickyHead">
@@ -250,7 +247,10 @@
 
   <br>
   <br>
-  <br>
+
+  <div id="sp">
+    <h3>Finances vs Performance</h3>
+  </div>
 
   <div class="row2">
     <svg id="scatter" width="500" height="500"></svg>
@@ -266,8 +266,9 @@
       <p>
         <strong>NAEP</strong>: There are 4 achievement levels: Below Basic, Basic, Proficient, and Advanced. Students
         performing at Proficient or greater demonstrate solid competency and performance on the subject matter.
-        Unfortunately, only a few states actually demonstrate this competency.
+        Unfortunately, only a few states actually demonstrate this competency and none reach the Advanced level.
       </p>
+
 
     </div>
   </div>
@@ -455,7 +456,7 @@
       // color options
       let greenColors = ["#cce7c9", "#8bca84", "#5bb450", "#46923c", "#276221"]
       let purpleColors = ["#bca0dc", "#b491c8", "#7c5295", "#663a82", "#52307c"]
-      let cyanColors = ["#45f7e5", "#3bd1c2", "#33b3a6", "#289086", "#207169"]
+      let cyanColors = ["#99f8ee", "#70e8dc", "#3bd1c2", "#289086", "#207169"]
       let blueColors = ["#caf0f8", "#90e0ef", "#00b4d8", "#0077b6", "#023e8a"]
       let pinkColors = ["#eec4dc", "#e27bb1", "#e44b8d", "#bb437e", "#7f3667"]
       let coolColors = ["#3acadf", "#729efd", "#8a64d6", "#5c3a92"]
@@ -646,14 +647,14 @@
 
       function dcMouseChange() {
         let dc = d3.select("#dc")
-        if (selectedStates.length < 5 && selectedStates.indexOf("District of Columbia") === -1) {
+        if (selectedStates.length < 11 && selectedStates.indexOf("District of Columbia") === -1) {
           selectedStates.push("District of Columbia");
           console.log("Turn Yellow")
           highlightState(selectedStates);
           dc.style("stroke", "yellow")
             .style("stroke-width", 3)
         } else {
-          if (selectedStates.length == 5 && selectedStates.indexOf("District of Columbia") === -1) {
+          if (selectedStates.length == 11 && selectedStates.indexOf("District of Columbia") === -1) {
             console.log("Too many states selected. Click a selected state to remove.")
           } else {
             console.log("Turn Orange")
@@ -672,7 +673,6 @@
         d3.selectAll("g.removePerf").remove()
         d3.selectAll("text.removePerf").remove()
         updatePerformance(selectedStates, spendExtent, perfVarMath, perfVarRead)
-
       }
 
       // Mouse In
@@ -705,43 +705,13 @@
       function highlightState(selectedStates) {
         let len = selectedStates.length
 
-        if (len === 1) {
-          var mou = topojson.mesh(us, us.objects.states, function (a, b) {
-            return a.id < 72 && a.properties.state === selectedStates[0] || b.id < 72 && b.properties.state === selectedStates[0]
-          });
-        }
-        if (len === 2) {
-          var mou = topojson.mesh(us, us.objects.states, function (a, b) {
-            return a.id < 72 && a.properties.state === selectedStates[0] || b.id < 72 && b.properties.state === selectedStates[0]
-              || a.id < 72 && a.properties.state === selectedStates[1] || b.id < 72 && b.properties.state === selectedStates[1]
-          });
-        }
-        if (len === 3) {
-          var mou = topojson.mesh(us, us.objects.states, function (a, b) {
-            return a.id < 72 && a.properties.state === selectedStates[0] || b.id < 72 && b.properties.state === selectedStates[0]
-              || a.id < 72 && a.properties.state === selectedStates[1] || b.id < 72 && b.properties.state === selectedStates[1]
-              || a.id < 72 && a.properties.state === selectedStates[2] || b.id < 72 && b.properties.state === selectedStates[2]
-
-          });
-        }
-        if (len === 4) {
-          var mou = topojson.mesh(us, us.objects.states, function (a, b) {
-            return a.id < 72 && a.properties.state === selectedStates[0] || b.id < 72 && b.properties.state === selectedStates[0]
-              || a.id < 72 && a.properties.state === selectedStates[1] || b.id < 72 && b.properties.state === selectedStates[1]
-              || a.id < 72 && a.properties.state === selectedStates[2] || b.id < 72 && b.properties.state === selectedStates[2]
-              || a.id < 72 && a.properties.state === selectedStates[3] || b.id < 72 && b.properties.state === selectedStates[3]
-
-          });
-        }
-        if (len === 5) {
-          var mou = topojson.mesh(us, us.objects.states, function (a, b) {
-            return a.id < 72 && a.properties.state === selectedStates[0] || b.id < 72 && b.properties.state === selectedStates[0]
-              || a.id < 72 && a.properties.state === selectedStates[1] || b.id < 72 && b.properties.state === selectedStates[1]
-              || a.id < 72 && a.properties.state === selectedStates[2] || b.id < 72 && b.properties.state === selectedStates[2]
-              || a.id < 72 && a.properties.state === selectedStates[3] || b.id < 72 && b.properties.state === selectedStates[3]
-              || a.id < 72 && a.properties.state === selectedStates[4] || b.id < 72 && b.properties.state === selectedStates[4]
-          });
-        }
+        var mou = topojson.mesh(us, us.objects.states, function (a, b) {
+          let bool = false
+          for (let i = 0; i < len; i++) {
+            bool = bool || a.id < 72 && a.properties.state === selectedStates[i] || b.id < 72 && b.properties.state === selectedStates[i]
+          }
+          return bool
+        })
 
         clickMesh.datum(mou).attr("d", path)
       }
@@ -750,11 +720,11 @@
       function mouseChangeState() {
         let st = d3.select(this);
 
-        if (selectedStates.length < 5 && selectedStates.indexOf(st.datum().state) === -1) {
+        if (selectedStates.length < 11 && selectedStates.indexOf(st.datum().state) === -1) {
           selectedStates.push(st.datum().state);
           highlightState(selectedStates);
         } else {
-          if (selectedStates.length == 5 && selectedStates.indexOf(st.datum().state) === -1) {
+          if (selectedStates.length == 11 && selectedStates.indexOf(st.datum().state) === -1) {
             console.log("Too many states selected. Click a selected state to remove.")
           } else {
             selectedStates.splice(selectedStates.indexOf(st.datum().state), 1)
@@ -1252,7 +1222,7 @@
           .attr("class", "legRemove")
           .attr("transform", `translate(${scatterChartW / 2 + marginScatter.left}, ${marginScatter.top})`)
           .style("text-anchor", "middle")
-          .text("Spending vs Performance by State")
+          .text("Finances vs Performance by State")
           .attr("fill", "black")
           .style("font-family", "monospace")
           .style("font-weight", "bold");
@@ -1330,6 +1300,11 @@
             .on("mouseover", circleMouseOver)
             .on("mouseout", circleMouseOut)
             .attr("fill", d => NAEPColor(d[perfVarMath], perfVarMath))
+          // .attr("stroke", d => { if (selectedStates.indexOf(d.state) != -1) { return "blue" } })
+          // .attr("stroke-width", d => { if (selectedStates.indexOf(d.state) != -1) { return 2 } })
+
+          // st.attr("stroke", "black")
+          // .attr("stroke-width", 2);
 
           scatterChart.selectAll("circle.p2")
             .data(readData)
@@ -1738,6 +1713,9 @@
 
       // ----- Button Functionality -----
       let g4Button = d3.select("#opG4")
+      let g8Button = d3.select("#opG8")
+      let satButton = d3.select("#opSAT")
+      let actButton = d3.select("#opACT")
 
       g4Button.on("click", function () {
         if (g4Button.classed("selectedOption", false)) {
@@ -1748,18 +1726,9 @@
 
           perfVarMath = "g4_math"
           perfVarRead = "g4_read"
-
-          d3.selectAll("g.removePerf").remove()
-          d3.selectAll("text.removePerf").remove()
-          updatePerformance(selectedStates, spendExtent, perfVarMath, perfVarRead)
-
-          d3.selectAll("g.removeScatter").remove()
-          d3.selectAll("text.removeScatter").remove()
-          updateScatter(spendExtent, perfVarMath, perfVarRead)
+          removeAndUpdate(perfVarMath, perfVarRead)
         }
       })
-
-      let g8Button = d3.select("#opG8")
 
       g8Button.on("click", function () {
         if (g8Button.classed("selectedOption", false)) {
@@ -1770,18 +1739,9 @@
 
           perfVarMath = "g8_math"
           perfVarRead = "g8_read"
-
-          d3.selectAll("g.removePerf").remove()
-          d3.selectAll("text.removePerf").remove()
-          updatePerformance(selectedStates, spendExtent, perfVarMath, perfVarRead)
-
-          d3.selectAll("g.removeScatter").remove()
-          d3.selectAll("text.removeScatter").remove()
-          updateScatter(spendExtent, perfVarMath, perfVarRead)
+          removeAndUpdate(perfVarMath, perfVarRead)
         }
       })
-
-      let satButton = d3.select("#opSAT")
 
       satButton.on("click", function () {
         if (satButton.classed("selectedOption", false)) {
@@ -1792,18 +1752,9 @@
 
           perfVarMath = "sat_math"
           perfVarRead = "sat_erw"
-
-          d3.selectAll("g.removePerf").remove()
-          d3.selectAll("text.removePerf").remove()
-          updatePerformance(selectedStates, spendExtent, perfVarMath, perfVarRead)
-
-          d3.selectAll("g.removeScatter").remove()
-          d3.selectAll("text.removeScatter").remove()
-          updateScatter(spendExtent, perfVarMath, perfVarRead)
+          removeAndUpdate(perfVarMath, perfVarRead)
         }
       })
-
-      let actButton = d3.select("#opACT")
 
       actButton.on("click", function () {
         if (actButton.classed("selectedOption", false)) {
@@ -1814,16 +1765,18 @@
 
           perfVarMath = "act_math"
           perfVarRead = "act_erw"
-
-          d3.selectAll("g.removePerf").remove()
-          d3.selectAll("text.removePerf").remove()
-          updatePerformance(selectedStates, spendExtent, perfVarMath, perfVarRead)
-
-          d3.selectAll("g.removeScatter").remove()
-          d3.selectAll("text.removeScatter").remove()
-          updateScatter(spendExtent, perfVarMath, perfVarRead)
+          removeAndUpdate(perfVarMath, perfVarRead)
         }
       })
+
+      function removeAndUpdate(perfVarMath, perfVarRead) {
+        d3.selectAll("g.removePerf").remove()
+        d3.selectAll("text.removePerf").remove()
+        updatePerformance(selectedStates, spendExtent, perfVarMath, perfVarRead)
+        d3.selectAll("g.removeScatter").remove()
+        d3.selectAll("text.removeScatter").remove()
+        updateScatter(spendExtent, perfVarMath, perfVarRead)
+      }
     }
 
     requestData()
